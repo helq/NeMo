@@ -1,13 +1,14 @@
 //
 // Created by Mark Plagge on 8/2/20.
 //
-#include "IOStack.h"
+#include "energy_stats.h"
 
 char *stat_filename_base = "energy_count_rank_";
 FILE *out_file;
 char stat_filename_computed[1024];
 
-double manhattan_distance(double x1,  double x2, double y1, double y2){
+
+static double manhattan_distance(double x1,  double x2, double y1, double y2){
   double distance;
   int x_dif, y_dif;
 
@@ -21,7 +22,8 @@ double manhattan_distance(double x1,  double x2, double y1, double y2){
   return distance;
 }
 
-double compute_network_distance(int source_core, int dest_core){
+
+static double compute_network_distance(int source_core, int dest_core){
   //grid:
   // 0,1,2..15
   // 17,18,19..31
@@ -33,25 +35,30 @@ double compute_network_distance(int source_core, int dest_core){
   double distance = manhattan_distance(source_x, dest_x, source_y, dest_y);
   return distance;
 }
+
+
 /**
  * write_header: This function writes the header to the energy
  * csv file. Should be called once per run.
  */
-void write_header(){
+static void write_header(){
   fputs("source_core, source_neuron, num_sops, num_rng, num_spikes, "
         "dest_core, network_distance\n",out_file);
 }
-void write_line(tn_energy *energy_data){
-  double distance = compute_network_distance(energy_data->my_core,
-      energy_data->dest_core);
-  int num_sops = energy_data->sops_count;
-  int num_rng = energy_data->rng_count;
 
-  fprintf(out_file,"%i,%i,%llu,%llu,%llu,%d,%f\n",energy_data->my_core,
+
+static void write_line(tn_energy *energy_data){
+  double const distance = compute_network_distance(energy_data->my_core,
+      energy_data->dest_core);
+  //int num_sops = energy_data->sops_count;
+  //int num_rng = energy_data->rng_count;
+
+  fprintf(out_file,"%i,%i,%lu,%lu,%lu,%d,%f\n",energy_data->my_core,
           energy_data->my_neuron, energy_data->sops_count,
           energy_data->rng_count, energy_data->spike_count,
           energy_data->dest_core, distance);
 }
+
 
 void save_energy_stats(tn_energy *energy_data, int source_rank){
   static bool is_file_init = false;
@@ -66,9 +73,8 @@ void save_energy_stats(tn_energy *energy_data, int source_rank){
 
   write_line(energy_data);
   fflush(out_file);
-
-
 }
+
 
 void close_energy_stat_file(){
   fclose(out_file);

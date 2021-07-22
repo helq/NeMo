@@ -6,17 +6,13 @@
   This file contains functions used to parse the text model configuration.
  */
 
-#include <sys/stat.h>
-#include "IOStack.h"
-#include "../lib/kdtree/kdtree.h"
-/* Input uses standard lua 5.1. However, these includes may be switched out
- * with luaJIT in the future. Maintain lua 5.1 / partial 5.2 compatiblility. */
-//#include "../lib/lua/lua.h"
-//#include "../lib/lua/lualib.h"
-//#include "../lib/lua/lauxlib.h"
+#include "model_reader.h"
 
-#include "lua.h"
+#include "../../external/kdtree/kdtree.h"
 #include "../neuro/tn_neuron_struct.h"
+#include "lua.h"
+#include <lauxlib.h>
+#include <lualib.h>
 
 
 /**@{ Binary Reader Code */
@@ -59,7 +55,6 @@ long setupBinaryNeurons(){
 }
 
 bool loadNeuronFromBIN(id_type neuronCore, id_type neuronLocal, tn_neuron_state *n){
-    tn_neuron_state *old_state = n;
     float pos[] = {neuronCore,neuronLocal};
     struct kdres *res = kd_nearestf(kd,pos);
     tn_neuron_state *new_state;
@@ -83,7 +78,7 @@ bool loadNeuronFromBIN(id_type neuronCore, id_type neuronLocal, tn_neuron_state 
 }
 
 void closeBinaryModelFile(){
-    static data_free = 0;
+    static int data_free = 0;
     if (bin_file_open){
         fclose(bin_file);
     }
@@ -263,7 +258,8 @@ long getLuaArray(long *arr) {
   while (lua_next(L, -2)!=0) {
     lua_pushvalue(L, -2);
 
-    const char *key = lua_tostring(L, -1);
+    // const char *key = lua_tostring(L, -1);
+    lua_tostring(L, -1);  // ignoring key
     long value = lua_tointeger(L, -2);
     arr[elnum] = value;
     elnum++;
@@ -329,20 +325,6 @@ long lGetAndPushParam(char *paramName, int isArray, long *arrayParam) {
 
 }
 
-//enum TNReadMode{
-//    CONN , //Syn. Connectivity
-//    AXTP, //Axon Types
-//    SGI, //sigma GI vals
-//    SP, //S Vals
-//    BV, //b vals
-//    NEXT, //goto next array data chunk
-//    OUT //out of array data
-//};
-
-
-static enum modelReadMode fileReadState = START_READ;
-//static enum TNReadMode tnReadState = CONN;
-
 char *luT(char *nemoName) {
   lua_getglobal(LT, nemoName);
   char *vname = (char *) lua_tostring(LT, -1);
@@ -354,7 +336,7 @@ char *luT(char *nemoName) {
 void closeLua() {
   if (L) {
     lua_close(L);
-    if (g_tw_npe <= MAX_RANKS_FILES) {
+    if (1 <= MAX_RANKS_FILES) {
       if (g_tw_mynode==0) {
         tw_printf(TW_LOC, "Load complete - freeing config file.\n");
       }

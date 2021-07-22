@@ -7,8 +7,8 @@
 
 #include "globals.h"
 #include <stdlib.h>
-//Linux / BSD issue
 
+//Linux / BSD issue
 #ifndef arc4random
 #define arc4random random
 #endif

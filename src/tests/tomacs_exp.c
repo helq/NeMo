@@ -3,26 +3,17 @@
 //
 
 #include "tomacs_exp.h"
-
-/** \ingroup synapSat @{ */
-
+#include "../mapping.h"
 
 //! Synaptic connectivity method. 0=Per axon, 1= Per Core
-int synConMeth = 0;
 int *synCoreBucket;
-
-//SAT NET parameters
-//unsigned int SAT_NET_PERCENT;
-//bool SAT_NET_COREMODE ;
-//unsigned int SAT_NET_THRESH;
-//unsigned int SAT_NET_LEAK;
-//bool SAT_NET_STOC;
-//bool IS_SAT_NET;
 
 //! Neurons have connectivityProb probability of having a connection.
 float connectivityProb = 0.2; // (float) SAT_NET_PERCENT / 100;
 //! when connected,  axons will have this weight
 int connectedWeight = 1;
+
+
 /**
  * Fisher-Yates Shuffle
  * @param pool
@@ -30,7 +21,7 @@ int connectedWeight = 1;
  * @param lp
  *
  */
-void shuffle(int *pool, unsigned long n, tw_lp *lp) {
+static void shuffle(int *pool, unsigned long n, tw_lp *lp) {
   long j;
 
   for (unsigned long i = n - 1; i > 0; i--) {
@@ -42,7 +33,7 @@ void shuffle(int *pool, unsigned long n, tw_lp *lp) {
 
 }
 
-void getCoreConnBkt(tw_lp *lp, bool *coreConArr) {
+static void getCoreConnBkt(tw_lp *lp, bool *coreConArr) {
   static int isInit = 0;
   static id_type lastCore = 0;
   static int idx = 0;
@@ -54,7 +45,6 @@ void getCoreConnBkt(tw_lp *lp, bool *coreConArr) {
 
   }
   if (cCore!=lastCore || isInit==0) {
-    int ctr = 0;
     bool err = true;
     if (isInit!=0) {
       if (cCore!=lastCore + 1) {
@@ -76,22 +66,9 @@ void getCoreConnBkt(tw_lp *lp, bool *coreConArr) {
     for (int i = 0; i < SAT_NET_PERCENT; i++) {
       synCoreBucket[i] = true;
     }
-//
-//		long long pbr = (int)(floorf(synCoreBktSize * ((float)SAT_NET_PERCENT / 100.0)));
-//        //or for pure stochastic mode:
-//		for (int i = 0; i < synCoreBktSize; i ++){
-//			synCoreBucket[i] = i < pbr;
-//		}
     shuffle(synCoreBucket, synCoreBktSize, lp);
     lastCore = cCore;
     idx = 0;
-//        long double tmp = 0.0;
-//        for(int i = 0; i < synCoreBktSize; i ++){
-//            tmp += synCoreBucket[i];
-//        }
-//        tmp /= synCoreBktSize;
-//        tw_printf(TW_LOC, "bucket created with %Lf connections vs %i %% calculated.", tmp, SAT_NET_PERCENT);
-
   }
   for (int i = 0; i < AXONS_IN_CORE; i++) {
     coreConArr[i] = (bool) synCoreBucket[idx];
@@ -99,12 +76,14 @@ void getCoreConnBkt(tw_lp *lp, bool *coreConArr) {
   }
 
 }
+
+
 void clearBucket() {
   free(synCoreBucket);
 }
-void setNeuronPoolMode(tw_lp *lp, bool *synapticConGrid) {
-  int min = 0;
 
+
+static void setNeuronPoolMode(tw_lp *lp, bool *synapticConGrid) {
   int scg[AXONS_IN_CORE];
   memset(scg, 0, sizeof scg);
   for (int i = 0; i < SAT_NET_PERCENT; i++) {
@@ -116,6 +95,8 @@ void setNeuronPoolMode(tw_lp *lp, bool *synapticConGrid) {
   }
 
 }
+
+
 void getSynapticConnectivity(bool *synapticConGrid, tw_lp *lp) {
 
   if (SAT_NET_COREMODE==1) {
@@ -132,39 +113,3 @@ void getSynapticConnectivity(bool *synapticConGrid, tw_lp *lp) {
   }
 
 }
-
-//long  getGridChipFromChip(unsigned int sourceChip){
-//    //grid communication for chips - layer to layer.
-//    long chipsPerLayer = NUM_CHIPS_IN_SIM / NUM_LAYERS_IN_SIM;
-//    long   destChip = sourceChip + chipsPerLayer;
-//    return destChip > NUM_CHIPS_IN_SIM ? ( long)-1:destChip;
-//}
-//
-//
-//
-//
-//gid_t getGridNeuronGIDFromNeuron(id_type myCore, id_type myNeuronLID, gid_t myNeuronGID){
-//
-//    //Get the number of cores in each layer:
-//    long coresInLayer;
-//    //Calculate the destination core using the source core and cores per layer:
-//    long destCore; // = coresInLayer + destCore + 1
-//    //get the destination axon GID using my localID and the dest core:
-//    tw_lpid destGID = getGIDFromLocalIDs(myNeuronLID, destCore);
-//    size_type sourceChip = coreToChip(myCore);
-//    long long destChip = getGridChipFromChip(sourceChip);
-//    if (destChip == -1)
-//        return myNeuronGID;
-//    //Neruons are connected across the network:
-//
-//    unsigned int firstCoreInChip = (destChip * CORES_IN_CHIP);
-//    firstCoreInChip = firstCoreInChip + myNeuronLID;
-//
-////    unsigned int destCore = CORES_IN_CHIP * ;
-//
-//
-//    //return destNeuronGID;
-//
-//}
-/** @} */
-

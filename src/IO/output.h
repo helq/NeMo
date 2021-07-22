@@ -1,10 +1,13 @@
 #ifndef NEMO_OUTPUT_H
 #define NEMO_OUTPUT_H
 
-#include <stdio.h>
-#include "../lib/simclist.h"
 #include "../globals.h"
-#include "../nemo_config.h"
-#include "IOStack.h"
+
+void initOutFiles();
+void closeFiles();
+void saveNeuronFire(tw_stime timestamp, id_type core, id_type local, tw_lpid destGID, long destCore,
+                    long destLocal, unsigned int isOutput);
+void saveNeuronFireDebug(tw_stime timestamp, id_type core, id_type local, tw_lpid destGID, long destCore,
+                         long destLocal, unsigned int isOutput);
 
 #endif

@@ -1,12 +1,11 @@
-##cmake_minimum_required(VERSION 2.6)
+#cmake_minimum_required(VERSION 2.6)
 project(NeMo)
 enable_testing()
 
 INCLUDE_DIRECTORIES(${ROSS_SOURCE_DIR} ${ROSS_BINARY_DIR} ${lmdir})
-INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}/lib/simclist)
+#INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}/lib/simclist)
 set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
 set(NON11 0 CACHE BOOL "Non C11 Compliant Compiler?")
-set(USE_MODEL_RDR 0 CACHE BOOL "Use NeMo JSON Model reader lib?")
 set(USE_HEADER_DATA 1 CACHE BOOL "Use a premade header file for neuron data loading?" )
 if (USE_LUA_JIT)
     message(AUTHOR_WARNING "USE JIT: ${USE_LUA_JIT}")
@@ -29,7 +28,7 @@ if (USE_LUA_JIT)
 else ()
 
     include_directories(
-            ${LuaD}/src
+            ${LUA_SRC_DIRECTORY}/src
             ${lua_BINARY_DIR})
 
 endif ()
@@ -79,9 +78,6 @@ else()
     add_definitions(-DNO_PTHREADS)
 endif()
 
-
-
-
 set(SAVE_MSGS 0)
 set(USE_COUCH 0)
 if (NeMo_SAVE_MSG)
@@ -99,82 +95,39 @@ INCLUDE_DIRECTORIES(
 CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/nemo_config.h.in ${CMAKE_CURRENT_BINARY_DIR}/nemo_config.h @ONLY)
 SET_SOURCE_FILES_PROPERTIES(${CMAKE_CURRENT_SOURCE_DIR}/nemo_config.h.in PROPERTIES GENERATED FALSE)
 SET_SOURCE_FILES_PROPERTIES(${CMAKE_CURRENT_BINARY_DIR}/nemo_config.h PROPERTIES GENERATED TRUE)
+include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 
 #Source Files:
 set(model_srcs
-        nemo_main.c
-        globals.h
-        globals.c
-        neuro/synapse.h
-        neuro/synapse.c
-
-        neuro/axon.h
-        neuro/axon.c
-
-        neuro/tn_neuron.c
-        neuro/tn_neuron.h
-
-        tests/nemo_tests.h
-        tests/synapse_test.c
-        tests/bio_validation.c
-        tests/mapping_tests.c
-        tests/testIO.h
-        tests/testIO.c
-
-
-        mapping.c
-        mapping.h
-
-
-        lib/csv.h
-        lib/libcsv.c
-
-
-        IO/IOStack.c
-        IO/IOStack.h
-        IO/output.h
-        IO/output.c
-        nemo_config.h
-        dumpi.c dumpi.h
-        layer_map/layer_map_lib.h
-        layer_map/layer_map_lib.c
-
-
-        IO/neuron_output.c
+        ../external/itrlve.c
+        ../external/kdtree/kdtree.c
+        ../external/libcsv.c
+        ../external/rqueue.c
+        IO/energy_stats.c
         IO/model_reader.c
-        IO/spike_db_reader.h
+        IO/neuron_output.c
+        IO/output.c
         IO/spike_db_reader.c
-        neuro/tn_neuron_struct.h
-
-        nemo_main.h tests/tomacs_exp.c
-        tests/tomacs_exp.h lib/itrlve.h
-        lib/itrlve.c lib/rqueue.c lib/rqueue.h lib/atomic_defs.h IO/model_reader_js.c lib/kdtree/kdtree.c lib/kdtree/kdtree.h IO/energy_stats.c)
-
-#REMOVED:
-#IO/spike_reader.c
-#IO/spike_reader.h
-
+        dumpi.c
+        globals.c
+        layer_map/layer_map_lib.c
+        mapping.c
+        nemo.main.c
+        neuro/axon.c
+        neuro/synapse.c
+        neuro/tn_neuron.c
+        tests/tomacs_exp.c
+)
 
 ADD_EXECUTABLE(NeMo ${model_srcs})
 
-#if (SQLITE_BUILD_STATIC)
-#	set(SQLIB "${SQLITE_STATIC_NAME}")
-#else()
-#	set(SQLIB "${SQLITE_DYNAMIC_NAME}")
-#endif()
-set(ll ROSS sqlite3 simclist m)
+set(NEMO_LIBS ROSS simclist m)
 if (USE_LUA_JIT)
-    #TARGET_LINK_LIBRARIES(NeMo ROSS luajit sqlite3 simclist m)
-    set(ll luajit ${ll})
-
+    set(NEMO_LIBS luajit ${NEMO_LIBS})
 else ()
-    #TARGET_LINK_LIBRARIES(NeMo ROSS liblua sqlite3 simclist m)
-    set(ll liblua ${ll})
+    set(NEMO_LIBS liblua ${NEMO_LIBS})
 endif ()
-if(USE_MODEL_RDR)
-    #set(ll ModelReaderLib ${ll})
-    message("lib settings: ${ll}")
-endif()
-message("-------------lib ${ll}")
-TARGET_LINK_LIBRARIES(NeMo ${ll})
+
+message("-------------lib ${NEMO_LIBS}")
+TARGET_LINK_LIBRARIES(NeMo ${NEMO_LIBS})

@@ -4,8 +4,6 @@
 #ifndef NEMO_SYNAPSE_H
 #define NEMO_SYNAPSE_H
 #include "../globals.h"
-#include "../mapping.h"
-#include "../IO/IOStack.h"
 
 typedef struct SynapseState {
   stat_type msgSent;
@@ -15,6 +13,7 @@ typedef struct SynapseState {
   unsigned long randCount[NEURONS_IN_CORE];
   bool connectionGrid[NEURONS_IN_CORE][NEURONS_IN_CORE];
 } synapseState;
+
 void synapse_init(synapseState *s, tw_lp *lp);
 void synapse_event(synapseState *s, tw_bf *bf, messageData *M, tw_lp *lp);
 void synapse_reverse(synapseState *s, tw_bf *bf, messageData *M, tw_lp *lp);

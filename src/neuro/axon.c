@@ -7,6 +7,13 @@
 //
 
 #include "axon.h"
+#include "../mapping.h"
+#include "../IO/spike_db_reader.h"
+#include "../../../external/simclist/simclist.h"
+#include "../dumpi.h"
+
+list_t spikeList;
+FILE *spikeFile;
 
 //Global Message CSV Writer -- for debug and message traacing
 #ifdef SAVE_MSGS
@@ -37,7 +44,7 @@
 //	addCol(messageTrace, dm, 1);
 //	addCol(messageTrace, lp->gid, 0);
 //	addRow(messageTrace);
-//	
+//
 //}
 #endif
 FILE *dumpi_out1;
@@ -67,7 +74,6 @@ void axonSpikeReader(axonState *s, tw_lp *lp) {
     }
 
   }
-  testImport();
   list_t spikeList;
   list_init(&spikeList);
 //    if(getCoreFromGID(lp->gid) > 511){
@@ -98,7 +104,6 @@ void axon_init(axonState *s, tw_lp *lp) {
     fileInit = 1;
   }
 
-  static bool writeInit = false;
   //TODO: Maybe switch this to a switch/case later, since it's going to get
   //big.
   static int specAxons = 0;
@@ -139,7 +144,7 @@ void axon_init(axonState *s, tw_lp *lp) {
 //        if (g_tw_mynode == 0){
 //			//why would an axon want to load a file?
 //			//tw_printf(TW_LOC,"Axon ID %llu attempted file load.\n",s->axonID);
-//			
+//
 //        }
 //    }
   } else { //else this is a random network for benchmarking.
@@ -166,7 +171,7 @@ void axon_init(axonState *s, tw_lp *lp) {
 
 void axon_event(axonState *s, tw_bf *CV, messageData *M, tw_lp *lp) {
   //generate new message
-  enum evtType mt = M->eventType;
+  // enum evtType mt = M->eventType;
   long rc = lp->rng->count;
   tw_event *axonEvent = tw_event_new(s->destSynapse, getNextEventTime(lp), lp);
   messageData *data = (messageData *) tw_event_data(axonEvent);
@@ -198,24 +203,17 @@ void axon_reverse(axonState *s, tw_bf *CV, messageData *M, tw_lp *lp) {
   }
 
 }
+
+
 void axon_final(axonState *s, tw_lp *lp) {
   static int fileOpen = 1;
-  if (g_tw_synchronization_protocol==OPTIMISTIC_DEBUG) {
-    char *shdr = "Axon Error\n";
-
-    if (s->sendMsgCount!=0) {
-      //print(shdr);
-      char *m = "Message Sent Val ->";
-      //debugMsg(m, s->sendMsgCount);
-    }
-  }
-
   if (DO_DUMPI && fileOpen) {
     fclose(dumpi_out1);
     fileOpen = 0;
   }
-
 }
+
+
 void axon_commit(axonState *s, tw_bf *CV, messageData *M, tw_lp *lp) {
   if (DO_DUMPI && M->isRemote) {
     //saveMPIMessage(s->myCoreID, getCoreFromGID(s->outputGID), tw_now(lp),

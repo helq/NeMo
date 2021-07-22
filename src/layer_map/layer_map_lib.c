@@ -1,4 +1,5 @@
 #include "layer_map_lib.h"
+#include "../mapping.h"
 
 unsigned int CORES_PER_LAYER = 0;
 unsigned int CHIPS_PER_LAYER = 0;
@@ -36,7 +37,6 @@ void getGridLinearMap(conInfo *neuron) {
   if (neuron->destLayer >= NUM_LAYERS_IN_SIM)
     neuron->destNeuron = 0;
   if (neuron->destNeuron >= SIM_SIZE) {
-    int x = 3;
 //        tw_error(TW_LOC, "Invalid dest neuron. DEST gid was"
 //                         "%lu, sim size is %lu. "
 //                         "\n Neuron source GID was %lu."
@@ -82,7 +82,7 @@ tw_lpid getNeuronDestInLayer(id_type sourceCore, tw_lpid neuronGID) {
   } else if (LAYER_NET_MODE & CONVOLUTIONAL_LAYER) {
     return 0;
   }
-
+  return -1;
 }
 
 void displayConfig() {
@@ -92,8 +92,8 @@ void displayConfig() {
   char *rnd = "Non-Unique Con";
 
   if (LAYER_NET_MODE!=0) {
-    STT("Chips per layer: %i", CHIPS_PER_LAYER);
-    STT("Cores per layer: %i", CORES_PER_LAYER);
+    printf("* \tChips per layer: %i\n", CHIPS_PER_LAYER);
+    printf("* \tCores per layer: %i\n", CORES_PER_LAYER);
     if (LAYER_NET_MODE & GRID_LAYER) {
       printf("* \t Layer Mode ");
 
@@ -103,17 +103,17 @@ void displayConfig() {
     }
     printf("* ");
     if (LAYER_NET_MODE & OUTPUT_RND) {
-      pm(rd);
+      printf("%s", rd);
       if (LAYER_NET_MODE & OUTPUT_UNQ) {
-        pm(ruq);
+        printf("%s", ruq);
       } else {
-        pm(rnd)
+        printf("%s", rnd);
       }
 
     } else {
-      pm("Linear ");
+      printf("Linear ");
     }
-    STT("Layers in sim: %i", NUM_LAYERS_IN_SIM);
+    printf("* \tLayers in sim: %i\n", NUM_LAYERS_IN_SIM);
   } else {
     printf("* \tNot Layer Mode \n");
   }
@@ -192,9 +192,11 @@ void configureGridNeuron(tn_neuron_state *s, tw_lp *lp) {
 
 void configureNeuronInLayer(tn_neuron_state *s, tw_lp *lp) {
   switch (LAYER_NET_MODE) {
-  case GRID_LAYER:configureGridNeuron(s, lp);
+  case GRID_LAYER:
+      configureGridNeuron(s, lp);
     break;
-  case CONVOLUTIONAL_LAYER:tw_error(TW_LOC, "Trying to init conv. layer network not implemented.");
+  case CONVOLUTIONAL_LAYER:
+    tw_error(TW_LOC, "Trying to init conv. layer network not implemented.");
     break;
   default:break;
   }

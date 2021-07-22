@@ -7,13 +7,15 @@
 
 #include "globals.h"
 
+extern tw_lptype model_lps[];
+
 /**
  * @brief      lpTypeMapper maps a given GID to a lp type - neuron, synapse, axon, etc
  * Assumes neuromorphic hardware grid laout with \f$NxN\f$ - number of neurons == number of axons.
- * 
+ *
  * @param[in]  gid   The gid
  *
- * @return     returns the lp type id value. 
+ * @return     returns the lp type id value.
  */
 tw_lpid lpTypeMapper(tw_lpid gid);
 
@@ -38,7 +40,7 @@ id_type getCoreFromGID(tw_lpid gid);
  * @brief      Gets the local from gid. Local ID here is on a \f$0-s\f$ scale. \f$s\f$
  * is the size of a core in the simulation. This is different from a local type
  * id. Local type IDs exist to allow reasoning about neurons and axons in a \f$0-n\f$
- * fashon, where \f$n\f$ is the number of neurons or axons in the sim. 
+ * fashon, where \f$n\f$ is the number of neurons or axons in the sim.
  *
  * @param[in]  gid   The gid
  *
@@ -67,7 +69,7 @@ id_type getNeuronLocalFromGID(tw_lpid gid);
 tw_lpid getGIDFromLocalIDs(id_type core, id_type coreLocal);
 
 /**
- * @brief      Gets the neuron global value from a given neuron id. 
+ * @brief      Gets the neuron global value from a given neuron id.
  *
  * @param[in]  core      The core
  * @param[in]  neuronID  The neuron id (0-n, where n is the number of neurons in the sim)
@@ -90,7 +92,7 @@ tw_lpid getAxonGlobal(id_type core, id_type axonID);
  * @brief      Gets the synapse global id from a given local synapse ID.
  *
  * @param[in]  core       The core ID.
- * @param[in]  synapseID  The synapse id - local grid id: 0-x, 
+ * @param[in]  synapseID  The synapse id - local grid id: 0-x,
  * where x is the number of synapses in the sim.
  *
  * @return     The synapse global ID.

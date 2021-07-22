@@ -25,9 +25,9 @@ const long double NEURO_CORE_CLOCK = 1000; //! Neuromorphic core speed (cycles /
 const long double JITTER_MAX = 0.0000005;
 const long double JITTER_MIN = 0.0000001;
 
-long double COMPUTE_TIME;  //= 0.000005;
-long double SEND_TIME_MIN; //= 0.00000005;
-long double SEND_TIME_MAX;// = 0.00000010;
+// extern long double COMPUTE_TIME;  //= 0.000005;
+// extern long double SEND_TIME_MIN; //= 0.00000005;
+// extern long double SEND_TIME_MAX;// = 0.00000010;
 
 
 
@@ -44,8 +44,6 @@ long CURRENT_TICK = 0;
  * @return
  */
 size_type chipToRank(size_type chipID) {
-  long NUM_SIM_RANKS = NUM_CHIPS_IN_SIM;
-
   return chipID/CHIPS_PER_RANK;
 }
 
@@ -163,10 +161,6 @@ double getCPUEnd(double cpuStart) {
 char *generateMsg(size_type sourceChip, size_type destChip, double twTimeSend, char *type, unsigned long dumpID) {
 
   char *outStr = calloc(sizeof(char), 1024); // alloc new string - using this instead of buffer for the time being.
-//    sourceChip = chipToRank(sourceChip);
-//    destChip = chipToRank(destChip);
-  size_type sc = chipToRank(sourceChip);
-  size_type dt = chipToRank(destChip);
   long double wallStart = getWallStart(twTimeSend);
   long double wallEnd = getWallEnd(wallStart);
   long double cpuStart = getCPUStart(twTimeSend);
@@ -176,12 +170,10 @@ char *generateMsg(size_type sourceChip, size_type destChip, double twTimeSend, c
     sourceChip = destChip;
     destChip = t;
   }
-  int rv = sprintf(outStr, "%li,%s %llu %llu %.21Lf %.21Lf %.17Lf %.17Lf %i %i %i %i\n",
-                   t, type, sourceChip, destChip, wallStart,
-                   wallEnd, cpuStart, cpuEnd, COUNT, DTYPE, COMM, TAG);
+  sprintf(outStr, "%li,%s %llu %llu %.21Lf %.21Lf %.17Lf %.17Lf %i %i %i %i\n",
+          t, type, sourceChip, destChip, wallStart,
+          wallEnd, cpuStart, cpuEnd, COUNT, DTYPE, COMM, TAG);
 
-  //virtual ranks are interleaved - add a "running-on" feature for script extraction at the start of the line
-  //rv = sprintf(outStr, "%li,%s",sourceChip,outStr);
   return outStr;
 }
 char *generateIsend(size_type sourceChip, size_type destChip, double twTimeSend, unsigned long dumpID) {

@@ -4,93 +4,75 @@
 //
 /** @file globals.h */
 
-
-
 #ifndef __NEMO_GLOBALS_H__
 #define __NEMO_GLOBALS_H__
 
 #define BGQ 1
 #define NET_IO_DEBUG 1
 
-#include <inttypes.h>
 #include <stdbool.h>
-#include <limits.h>
-#include <math.h>
-#ifdef __cplusplus
-#include "nemo_config.h"
-#else
 #include <nemo_config.h>
-#endif
 #include "ross.h"
 
 /** @defgroup tempConfig Temporary configuration globals
  *	These global defines are stored here before I migrate them into either a run-time
- *	or compile-time option 
+ *	or compile-time option
  * @{ */
-
-#define SAVE_NEURON_STATS 1
-
+#define SAVE_NEURON_STATS true
 /**@}*/
+
 /**
  * Neuron file read buffer size - for reading CSV files.
  */
 #define NEURON_BUFFER_SZ  32
-#define MAX_NEURON_PARAMS  65536
+
 #define N_FIRE_BUFF_SIZE 4096
 #define TXT_HEADER "****************************************************************************\n"
-#define TH printf( TXT_HEADER );
-#define STT(str, p) printf("* \t" str "\n" , p );
+#define MAX_RANKS_FILES  65535
 
-/** @defgroup types Typedef Vars 
+#define DBG_MODEL_MSGS 0
+
+/** @defgroup types Typedef Vars
  * Typedefs to ensure proper types for the neuron parameters/mapping calculations
  */
 /**@{  */
 
-typedef int_fast64_t
-    id_type; //!< id type is used for local mapping functions - there should be $n$ of them depending on CORE_SIZE
-typedef int32_t volt_type; //!< volt_type stores voltage values for membrane potential calculations
-typedef int64_t weight_type;//!< seperate type for synaptic weights.
-typedef uint32_t thresh_type;//!< Type for weights internal to the neurons.
-typedef uint16_t random_type;//!< Type for random values in neuron models.
-
-typedef uint64_t size_type; //!< size_type holds sizes of the sim - core size, neurons per core, etc.
-
+typedef int_fast64_t id_type;  //!< id type is used for local mapping functions - there should be $n$ of them depending on CORE_SIZE
+typedef int32_t volt_type;     //!< volt_type stores voltage values for membrane potential calculations
+typedef uint64_t size_type;    //!< size_type holds sizes of the sim - core size, neurons per core, etc.
 typedef uint64_t stat_type;
 /**@}*/
 
-/** @defgroup cmacros Global Dynamic Typing casting macros for file IO */
-/** @{ */
-#define ATOX(x) _Generic((x), \
-double: atof,\
-long: atol,\
-int: atoi,\
-float: atof
 
-#define MAX_RANKS_FILES  65535
-
-/**@}
+/**
  * @defgroup gmacros Global Macros and Related Functions
  *Global Macros */
 /**@{ */
 
-//Switched from C11 variables to generic print function:
-void debugMsg(char *m, char *d);
-#define print printf
-#define pm(x) printf("%s",x);
-//
-
-/** TODO: Eventually replace this with generic macro and non-branching ABS code. */
 #define IABS(a) (((a) < 0) ? (-a) : (a)) //!< Typeless integer absolute value function
-/** TODO: See if there is a non-branching version of the signum function, maybe in MAth libs and use that. */
+// TODO: See if there is a non-branching version of the signum function, maybe in MAth libs and use that.
 #define SGN(x) ((x > 0) - (x < 0)) //!< Signum function
-
-#define DT(x) !(x) //!<Kronecker Delta function.
+#define DT(x) !(x) //!< Kronecker Delta function.
 
 #define BINCOMP(s, p) IABS((s)) >= (p) //!< binary comparison for conditional stochastic evaluation
-/** 32bit X86 Assembler IABS: */
-int iIABS(int vals);
+#define iBINCOMP(s, p) iIABS((s)) >= (p) //!< binary comparison for conditional stochastic evaluation (integer only)
 
-weight_type iiABS(weight_type in);
+/** 32bit X86 Assembler IABS: */
+static inline int32_t iIABS(int32_t vals) {
+#ifdef X86ASM
+  int result;
+  asm ("movl  %[valI], %%eax;"
+          "cdq;"
+          "xor %%edx, %%eax;"
+          "sub %%edx, %%eax;"
+          "movl %%eax, %[resI];"
+  : [resI] "=r" (result)
+  : [valI] "r" (vals)
+  : "cc","%eax", "%ebx");
+  return result;
+#endif
+  return IABS(vals);
+}
 /** @} */
 
 /** @defgroup timeFuncts Time Functions
@@ -98,10 +80,16 @@ weight_type iiABS(weight_type in);
   */
 /** @{ */
 
-/** Macro for use within globals. 
+/** Macro for use within globals.
  Assumes that there is a tw_lp pointer called lp in the function it is used.
  */
 #define JITTER (tw_rand_unif(lp->rng) / 10000)
+
+/* Global Timing Variables */
+/** little tick rate - controls little tick timing */
+#define littleTick 0.0001
+/** bigTickRate is the rate of simulation - neurons synchronize based on this value. */
+#define bigTickRate 1
 
 /**
  *  Gets the next event time, based on a random function. Moved here to allow for
@@ -113,7 +101,10 @@ weight_type iiABS(weight_type in);
  *  @return a tw_stime value, such that \f$ 0 < t < 1 \f$. A delta for the next
  *  time slice.
  */
-tw_stime getNextEventTime(tw_lp *lp);
+static inline tw_stime getNextEventTime(tw_lp *lp) {
+  return JITTER + littleTick;
+}
+
 /**
  *  @brief  Given a tw_stime, returns the current big tick.
  *
@@ -121,7 +112,9 @@ tw_stime getNextEventTime(tw_lp *lp);
  *
  *  @return the current big tick time.
  */
-tw_stime getCurrentBigTick(tw_stime now);
+static inline tw_stime getCurrentBigTick(tw_stime now) {
+  return floor(now);
+}
 
 /**
  *  @brief  Given a tw_stime, returns the next big-tick that will happen
@@ -131,19 +124,12 @@ tw_stime getCurrentBigTick(tw_stime now);
  *
  *  @return Next big tick time.
  */
-tw_stime getNextBigTick(tw_lp *lp, tw_lpid neuronID);
+static inline tw_stime getNextBigTick(tw_lp *lp, tw_lpid neuronID) {
+  return JITTER + bigTickRate;
+}
 
 /**@}*/
 
-tw_stime getNextSynapseHeartbeat(tw_lp *lp);
-
-/**
- * String concat that returns a pointer to the very end of the string.
- * @param dest
- * @param src
- * @return
- */
-char *mystrcat(char *dest, char *src);
 /** @defgroup global_structs_enums Global Structs and Enums
   * Global structs and enums, including event types, lp types, and the message structure
   */
@@ -160,28 +146,6 @@ enum evtType {
   NEURON_SETUP, //!< Message that contains a neuron's setup information for the synapse - connectivity info
   GEN_HEARTBEAT //!< Signal generator messages -- used to simulate input for benchmarking.
 };
-enum lpTypeVals {
-  AXON = 0,
-  SYNAPSE = 1,
-  NEURON = 2
-};
-enum neuronTypeVals {
-  NA = 0,
-  TN = 1
-};
-
-/**
- * @brief      test result flag.
- */
-enum mapTestResults {
-  INVALID_AXON = 1 << 1, //!< Axon was not properly defined.
-  INVALID_SYNAPSE = 1 << 2, //!< Synapse was not properly defined.
-  INVALID_NEURON = 1 << 3 //!< Neuron was not properly defined.
-};
-
-//typedef enum NeuronTypes {
-//    TrueNorth = 0
-//} neuronTypes;
 
 typedef enum LayerTypes {
   NON_LAYER = 0,
@@ -189,7 +153,6 @@ typedef enum LayerTypes {
   CONVOLUTIONAL_LAYER = 1 << 2,
   OUTPUT_UNQ = 1 << 3,
   OUTPUT_RND = 1 << 4
-
 } layerTypes;
 /**@} */
 
@@ -206,7 +169,7 @@ typedef struct Ms {
       volt_type neuronVoltage;
       tw_stime neuronLastActiveTime;
       tw_stime neuronLastLeakTime;
-      random_type neuronDrawnRandom;
+      uint16_t neuronDrawnRandom;
     };
   };
 
@@ -232,121 +195,60 @@ typedef struct Ms {
 } messageData;
 /**@}*/
 
-/** \defgroup IOStructs Input/Output structs @{ */
-/** Structs for managing neuron reads */
-typedef struct CsvNeuron {
-  int fld_num;
-  int req_core_id;
-  int req_local_id;
-  int foundNeuron;
-  char rawDatM[MAX_NEURON_PARAMS][NEURON_BUFFER_SZ];
-//	char *rawDatP[NEURON_BUFFER_SZ];
-//    char **rawDat;
-
-} csvNeuron;
-/**
- * SpikeElem / spikeElem is a struct that holds the raw spike data
- * from a CSV file. The data is stored in a simclist list. One spike
- * is stored in each spikeElem.
- */
-typedef struct SpikeElem {
-  long scheduledTime;
-  long destCore;
-  long destAxon;
-} spikeElem;
-
-/**
- * NeuronMembraneRecord stores an active neuron's membrane potential.
- * This is used to save and store membrane potential / neuron activity
- * during a simulation run. Used by output.c
- */
-typedef struct NeuronMembraneRecord {
-  tw_stime tickTime;
-  volt_type membranePot;
-  id_type neuronCore;
-  id_type neuronID;
-} neuronMembraneRecord;
-
-
-
-
-
-
-
-/** @} */
-
-#endif //NEMO_GLOBALS_H
-#ifndef EXTERN
-#define EXT extern
-
 /**
  * \defgroup Globals Global Variables
  * @{
  */
-EXT size_type LPS_PER_PE;
-EXT size_type SIM_SIZE;
-EXT size_type LP_PER_KP;
+extern size_type LPS_PER_PE;
+extern size_type SIM_SIZE;
+extern size_type LP_PER_KP;
 
-EXT bool IS_RAND_NETWORK;
-EXT size_type CORES_IN_SIM;
+extern size_type CORES_IN_SIM;
+extern size_type CORE_SIZE;
+extern size_type SYNAPSES_IN_CORE;
 
-//EXT size_type AXONS_IN_CORE;
+extern bool BULK_MODE;
+extern bool DEBUG_MODE;
+extern bool SAVE_MEMBRANE_POTS;
+extern bool SAVE_SPIKE_EVTS; //!< Toggles saving spike events
+extern bool SAVE_NETWORK_STRUCTURE;
+extern unsigned int SAVE_OUTPUT_NEURON_EVTS;
+extern bool BINARY_OUTPUT;
 
-EXT size_type CORE_SIZE;
-EXT size_type SYNAPSES_IN_CORE;
+extern bool PHAS_VAL;
+extern bool TONIC_BURST_VAL;
+extern bool PHASIC_BURST_VAL;
+extern bool VALIDATION;
 
-EXT bool BULK_MODE;
-EXT bool DEBUG_MODE;
-EXT bool SAVE_MEMBRANE_POTS;
-EXT bool SAVE_SPIKE_EVTS; //!< Toggles saving spike events
-EXT bool SAVE_NETWORK_STRUCTURE;
-EXT unsigned int SAVE_OUTPUT_NEURON_EVTS;
-//EXT bool MPI_SAVE;
-EXT bool BINARY_OUTPUT;
-
-EXT bool PHAS_VAL;
-//EXT bool TONIC_SPK_VAL;
-EXT bool TONIC_BURST_VAL;
-EXT bool PHASIC_BURST_VAL;
-EXT bool VALIDATION;
-
-EXT bool FILE_OUT;
-EXT bool FILE_IN;
+extern bool FILE_OUT;
+extern bool FILE_IN;
 
 /** value for the size of a processor. Defaults to 4096 cores per proc */
-EXT unsigned int CORES_IN_CHIP;
-EXT unsigned int NUM_CHIPS_IN_SIM;
-EXT unsigned int CHIPS_PER_RANK;
-
-EXT char *NEURON_FIRE_R_FN;
-
+extern unsigned int CORES_IN_CHIP;
+extern unsigned int NUM_CHIPS_IN_SIM;
+extern unsigned int CHIPS_PER_RANK;
 
 /** @defgroup ctime Compute Time Parameters
  * Variables that change DUMPI compute time / send time @{
  */
-EXT long double COMPUTE_TIME;
-EXT long double SEND_TIME_MIN;
-EXT long double SEND_TIME_MAX;
-EXT unsigned int DO_DUMPI;
+extern long double COMPUTE_TIME;
+extern long double SEND_TIME_MIN;
+extern long double SEND_TIME_MAX;
+extern unsigned int DO_DUMPI;
 
-/* Global Timing Variables */
-/**
- * little tick rate - controls little tick timing
- */
-EXT tw_stime littleTick;
 /**
  * clock random value adjuster.
  */
-EXT tw_stime CLOCK_RANDOM_ADJ;
+extern tw_stime CLOCK_RANDOM_ADJ;
 /** @} */
 
 /** @defgroup satnet Saturation network flags / settings @{ */
-EXT unsigned int SAT_NET_PERCENT;
-EXT unsigned int SAT_NET_COREMODE;
-EXT unsigned int SAT_NET_THRESH;
-EXT unsigned int SAT_NET_LEAK;
-EXT unsigned int SAT_NET_STOC;
-EXT unsigned int IS_SAT_NET;
+extern unsigned int SAT_NET_PERCENT;
+extern unsigned int SAT_NET_COREMODE;
+extern unsigned int SAT_NET_THRESH;
+extern unsigned int SAT_NET_LEAK;
+extern unsigned int SAT_NET_STOC;
+extern unsigned int IS_SAT_NET;
 
 /** @} @defgroup laynet Basic Layer Network Settings @{ */
 //typedef struct LParams {
@@ -354,29 +256,27 @@ EXT unsigned int IS_SAT_NET;
 //    layerTypes LAYER_NET_MODE;
 //    unsigned int layerSizes[4096];
 //};
-EXT unsigned int NUM_LAYERS_IN_SIM;
-EXT layerTypes LAYER_NET_MODE;
-EXT unsigned int LAYER_SIZES[4096];
-EXT unsigned int CORES_PER_LAYER;
-EXT unsigned int CHIPS_PER_LAYER;
-EXT unsigned int GRID_ENABLE;
-EXT unsigned int GRID_MODE;
-EXT unsigned int RND_GRID;
-EXT unsigned int RND_UNIQ;
-EXT unsigned int UNEVEN_LAYERS;
-EXT char *LAYER_LAYOUT;
+extern unsigned int NUM_LAYERS_IN_SIM;
+extern layerTypes LAYER_NET_MODE;
+extern unsigned int LAYER_SIZES[4096];
+extern unsigned int CORES_PER_LAYER;
+extern unsigned int CHIPS_PER_LAYER;
+extern unsigned int GRID_ENABLE;
+extern unsigned int GRID_MODE;
+extern unsigned int RND_GRID;
+extern unsigned int RND_UNIQ;
+extern unsigned int UNEVEN_LAYERS;
+extern char *LAYER_LAYOUT;
 /**@} @defgroup iocfg File buffer settings
  * @{
  * */
 
-
-EXT char *luaConfigFile; //!< Stores LUA configuration file in memory for performance increase.
-EXT long isBin;
-//#define N_FIRE_BUFF_SIZE 32
+extern char *luaConfigFile; //!< Stores LUA configuration file in memory for performance increase.
+extern long isBin;
 
 /** POSIX Neuron Fire record line buffer size.
  * For text mode only, sets the length of strings stored in the neuron fire buffer*/
-EXT int N_FIRE_LINE_SIZE;
+extern int N_FIRE_LINE_SIZE;
 
 
 /** dumpi noise/squash generation toggle - for reading in model files that ignore
@@ -389,7 +289,7 @@ EXT int N_FIRE_LINE_SIZE;
  *
  * Default is 0: No spike modifications.s
  */
-EXT char DUMPI_NOISE;
+extern char DUMPI_NOISE;
 
 //#define N_FIRE_LINE_SIZE 128
 /** @} */
@@ -402,10 +302,10 @@ EXT char DUMPI_NOISE;
  * the path to the spike input file,
  * and file loading options.
  * @{*/
-EXT char NEMO_MODEL_FILE_PATH[512];
-EXT char NEMO_SPIKE_FILE_PATH[512];
-EXT bool NEMO_MODEL_IS_TN_JSON;
-EXT bool NEMO_MODEL_IS_BINARY;
+extern char NEMO_MODEL_FILE_PATH[512];
+extern char NEMO_SPIKE_FILE_PATH[512];
+//extern bool NEMO_MODEL_IS_TN_JSON;
+extern bool NEMO_MODEL_IS_BINARY;
 /** @} */
 
-#endif
+#endif // __NEMO_GLOBALS_H__

@@ -2,12 +2,11 @@
 // Created by Mark Plagge on 8/2/16.
 //
 #include "output.h"
-//#include <pthread.h>
-//#include <stdatomic.h>
-#include "../lib/rqueue.h"
-//#include "../lib/c11t/c11threads.h"
-// POSIX File handles for non MPI IO file writing
+#include <assert.h>
+#include "energy_stats.h"
+#include "../../external/rqueue.h"
 
+// POSIX File handles for non MPI IO file writing
 FILE *outputFile;
 
 FILE *neuronFireFile;
@@ -22,7 +21,7 @@ bool outputFileOpen;
 //Names of output files
 char *neuronFireFinalFN;
 char *neuronRankFN;
-//char * NEURON_FIRE_R_FN = "fire_record"; <-- Global variable sets the name of the fire record.
+char *NEURON_FIRE_R_FN = "fire_record"; // <-- Global variable sets the name of the fire record.
 
 //Global Memory Pool Position Counters
 int neuronFirePoolPos = 0;
@@ -71,6 +70,7 @@ void *outputWorker() {
       }
     }
   }
+  return NULL;
 }
 /**
  * initializes threads and sets up queue for file io
@@ -190,27 +190,6 @@ void saveNeuronFireDebug(tw_stime timestamp, id_type core, id_type local, tw_lpi
 }
 /** @} */
 
-
-/** @defgroup outputFileHandler File output handler functions.
- * This group contains functions that initialize file pointers and buffers for output file operations.
- * Based on runtime and compile time flags, these functions init
- * the buffers needed for output, along with file pointers.
- *
- * ## Global Flags Used:
- *
- *  - #SAVE_SPIKE_EVTS - Flag that determines if neuron spike events are to be saved.
- *  - #N_FIRE_BUFF_SIZE - Number of spike events that are stored in memory before being saved to disk.
- *  - #N_FIRE_LINE_SIZE
- *	@secreflist
- *	\refitem SAVE_SPIKE_EVTS
- *	\refitem N_FIRE_BUFF_SIZE
- *	\refitem N_FIRE_LINE_SIZE
- *	\refitem neuronFireFileName
- *	\refitem fileNames
- *	@endsecreflist
- * @{
- */
-
 void setFileNames() {
   //if (SAVE_SPIKE_EVTS || SAVE_OUTPUT_NEURON_EVTS) {
     setNeuronNetFileName();
@@ -249,14 +228,14 @@ void closeFiles() {
   close_energy_stat_file();
   flushNeuron();
   fclose(neuronFireFile);
-
-
-//    MPI_File_close(neuronFireFileMPI);
   MPI_Barrier(MPI_COMM_WORLD); // wait for everyone to catch up.
   if (g_tw_mynode==0) {
-
     FILE *finalout = fopen("neuron_spike_evts.csv", "w");
     fprintf(finalout, "timestamp,neuron_core,neuron_local,destGID\n");
+    assert(num_save_ops <= N_FIRE_BUFF_SIZE);
+    for (size_t i = 0; i < num_save_ops && neuronFireBufferTXT[i] != NULL; i++) {
+        fprintf(finalout, "%s\n", neuronFireBufferTXT[i]);
+    }
     fclose(finalout);
     printf("Attempted to write %lu spikes to file \n",num_save_ops);
   }
@@ -265,7 +244,3 @@ void closeFiles() {
 
 
 /** @} */
-
-
-
-

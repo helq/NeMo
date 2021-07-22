@@ -2,10 +2,13 @@
 // Created by Mark Plagge on 4/25/17.
 //
 
+#include "neuron_output.h"
+
 #include <pthread.h>
-#include "IOStack.h"
+#include "../mapping.h"
 #include "../neuro/tn_neuron.h"
-#include "../lib/rqueue.h"
+#include "../../../external/rqueue.h"
+#include "../../../external/simclist/simclist.h"
 
 FILE *membraneFile;
 FILE *outSpikeFile;
@@ -38,12 +41,12 @@ void openOutputFiles(char *outputFileName) {
 //    strcat(ncfgfn,".bin");
     char netfn[255] = {'\0'};
 //    printf("LN28\n");
-    sprintf(netfn, "network_config_%i.csv", g_tw_mynode);
+    sprintf(netfn, "network_config_%lu.csv", g_tw_mynode);
 //    printf("LN30\n");
     outNetworkCfgFile = fopen(netfn, "wb");
 //    printf("LN31\n");
     char netfn2[255] = {'\0'};
-    sprintf(netfn2, "neuron_config_%i.csv", g_tw_mynode);
+    sprintf(netfn2, "neuron_config_%lu.csv", g_tw_mynode);
     outNeuronCfgFile = fopen(netfn2, "wb");
 //    printf("LN36\n");
     fprintf(outNetworkCfgFile, "Core,NeuronID,DestCore,DestAxon\n");
@@ -85,7 +88,7 @@ int neuronConnToSCSV(tn_neuron_state *n, char *state) {
   id_type destAxon = getAxonLocal(n->outputGID);
   id_type core = n->myCoreID;
   id_type local = n->myLocalID;
-  return sprintf(state, "%li,%li,%i,%i\n", core, local, destCore, destAxon);
+  return sprintf(state, "%li,%li,%li,%li\n", core, local, destCore, destAxon);
 }
 void saveIndNeuron(void *ns) {
   tn_neuron_state *n = (tn_neuron_state *) ns;
@@ -127,7 +130,7 @@ void *fileWorker() {
       }
       tn_neuron_state *n = nd;
       fprintf(outNeuronCfgFile,
-              "%llu, %llu, %li, %li",
+              "%li, %li, %li, %li",
               n->myCoreID,
               n->myLocalID,
               n->outputNeuronDest,
@@ -147,6 +150,7 @@ void *fileWorker() {
     }
   } while (threaded);
   printf("worker complete.\n");
+  return NULL;
 }
 
 int isSetup = 0;
@@ -175,7 +179,7 @@ void saveNeuronNetworkStructure(void *n) {
   while (rqueue_write(nc_data_q, n)==-2) {
     fullctr++;
     if (fullctr%100==0) {
-      printf("\n Node %i reports queue full - waiting. Full times = %i\n", g_tw_mynode, fullctr);
+      printf("\n Node %lu reports queue full - waiting. Full times = %i\n", g_tw_mynode, fullctr);
     }
   }
   //fileWorker();
@@ -202,7 +206,7 @@ void saveNetworkStructureMPI(){
     //compute the offset based on the size of the data.
     //declare the CSV header
     MPI_Offset offset = 0;
-    long num_neurons_per_rank = (CORES_IN_SIM * NEURONS_IN_CORE) / g_tw_npe;
+    long num_neurons_per_rank = (CORES_IN_SIM * NEURONS_IN_CORE) / 1;
     long entry_size = sizeof(char) *
                       16; // each entry will contain 16 chars. Will include the ',' chars (so a total of 15 digits).
     //core, neuronID, DC, DA, axon_conn_list, axon_types, weights, weight_mode, newline
@@ -210,29 +214,28 @@ void saveNetworkStructureMPI(){
             (4 + AXONS_IN_CORE + AXONS_IN_CORE + NUM_NEURON_WEIGHTS + NUM_NEURON_WEIGHTS + 1) * entry_size;
     //we need to save a line for each neuron:
     long long total_write_size = CORES_IN_SIM * NEURONS_IN_CORE * size_of_params;
-    long rank_write_size = total_write_size / g_tw_npe;
+    long rank_write_size = total_write_size / 1;
     //and the offset is the total write size / num_neurons_per_ranks (since the write size is neuron-based)
     offset = rank_write_size * g_tw_mynode;
     char *neuron_data = calloc(sizeof(char), rank_write_size);
     // populate neuron data with values:
-#define ld "%15d,"
     int neuron_start = num_neurons_per_rank * g_tw_mynode;
     for (int i = neuron_start; i < num_neurons_per_rank; i++) {
       tw_lpid wanted_neuron = getGIDFromLocalIDs(i / NEURONS_IN_CORE, i % NEURONS_IN_CORE);
       tn_neuron_state *n = tw_getlocal_lp(wanted_neuron)->cur_state;
-      sprintf(neuron_data, "%s" ld ld ld ld, neuron_data, n->myCoreID, n->myLocalID, getCoreFromGID(n->outputGID),
+      sprintf(neuron_data, "%s%15li,%15li,%15li,%15li,", neuron_data, n->myCoreID, n->myLocalID, getCoreFromGID(n->outputGID),
               getNeuronLocalFromGID(n->outputGID));
       for (int j = 0; j < AXONS_IN_CORE; j++) {
-        sprintf(neuron_data, "%s" ld, neuron_data, n->synapticConnectivity[i]);
+        sprintf(neuron_data, "%s%15d,", neuron_data, n->synapticConnectivity[i]);
       }
       for (int j = 0; j < AXONS_IN_CORE; j++) {
-        sprintf(neuron_data, "%s" ld, neuron_data, n->axonTypes[i]);
+        sprintf(neuron_data, "%s%15d,", neuron_data, n->axonTypes[i]);
       }
       for (int j = 0; j < NUM_NEURON_WEIGHTS; j++) {
-        sprintf(neuron_data, "%s" ld, neuron_data, n->synapticWeight[i]);
+        sprintf(neuron_data, "%s%15d,", neuron_data, n->synapticWeight[i]);
       }
       for (int j = 0; j < NUM_NEURON_WEIGHTS; j++) {
-        sprintf(neuron_data, "%s", ld, neuron_data, n->weightSelection[i]);
+        sprintf(neuron_data, "%s%15d,", neuron_data, n->weightSelection[i]);
       }
       sprintf("%s\n", neuron_data);
     }
@@ -299,17 +302,17 @@ void saveNetworkStructure() {
   printf("Starting network save");
   //char lntxt[NEURONS_IN_CORE * CORES_IN_SIM * 2];
 
-  for (int core = 0; core < CORES_IN_SIM/g_tw_npe; core++) {
+  for (int core = 0; core < CORES_IN_SIM/1; core++) {
     for (int neuron = 0; neuron < NEURONS_IN_CORE; neuron++) {
       tw_lpid ngid = getNeuronGlobal(core, neuron);
       tn_neuron_state *n = (tn_neuron_state *) tw_getlp(ngid);
       //sprintf(lntxt, "%llu, %llu", n->myCoreID, n->myLocalID);
-      fprintf(outNeuronCfgFile, "%llu, %llu", n->myCoreID, n->myLocalID);
+      fprintf(outNeuronCfgFile, "%li, %li", n->myCoreID, n->myLocalID);
       fflush(outNeuronCfgFile);
       neuronConnToSCSV(n, lxtxt);
 
       for (int ax = 0; ax < NEURONS_IN_CORE; ax++) {
-        sprintf(lntxt, "%s,%llu", lntxt, n->synapticWeight[n->axonTypes[ax]] && n->synapticConnectivity[ax]);
+        sprintf(lntxt, "%s,%i", lntxt, n->synapticWeight[n->axonTypes[ax]] && n->synapticConnectivity[ax]);
         fprintf(outNeuronCfgFile,
                 "%s,%i",
                 lntxt,
@@ -339,7 +342,6 @@ void saveNetworkStructure() {
   return;
   initDataStructures(g_tw_nlp);
 
-  int neuronsStartAt = AXONS_IN_CORE + 1;
   fprintf(outNetworkCfgFile, "Core,NeuronID,DestCore,DestAxon\n");
   for (int core = 0; core < CORES_IN_SIM; core++) {
     for (int neuron = 0; neuron < NEURONS_IN_CORE; neuron++) {

@@ -4,19 +4,8 @@
 
 #ifndef __NEMO_TN_NEURON_H__
 #define __NEMO_TN_NEURON_H__
-#include "./tn_neuron_struct.h"
-#include <math.h>
-#include <assert.h>
-#include <search.h>
-#include "../IO/IOStack.h"
-#include "../globals.h"
-#include "../mapping.h"
-#include "../dumpi.h"
+#include "tn_neuron_struct.h"
 #include "../tests/tomacs_exp.h"
-#include "../nemo_config.h"
-#include "../IO/output.h"
-
-#define Vj ns->membranePotential
 
 #ifdef NET_IO_DEBUG
 #include <stdarg.h>
@@ -90,7 +79,7 @@ void TN_final(tn_neuron_state *s, tw_lp *lp);
  * This is used for managing super synapse direct communication functionality.
  */
 
-inline tn_neuron_state *TN_convert(void *lpstate);
+//inline tn_neuron_state *TN_convert(void *lpstate);
 
 size_t tn_size(tn_neuron_state *s, tw_lp *lp);
 void tn_serialize(tn_neuron_state *s, void *buffer, tw_lp *lp);
@@ -107,11 +96,5 @@ void tn_deserialize(tn_neuron_state *s, void *buffer, tw_lp *lp);
  */
 
 void testCreateTNNeuronFromFile(tn_neuron_state *s, tw_lp *lp);
-
-/**
- * \ingroup nemo_tests
- * Closes the test file for this rank (if it has not already been closed.)
- */
-void closeTestFile();
 
 #endif  // NEMO_TN_NEURON_H

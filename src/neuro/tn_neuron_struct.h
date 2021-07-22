@@ -5,8 +5,9 @@
 #ifndef SUPERNEMO_TN_NEURON_STRUCT_H
 #define SUPERNEMO_TN_NEURON_STRUCT_H
 
-#include "../IO/IOStack.h"
-#include "../nemo_main.h"
+#include <ross.h>
+#include "../IO/energy_stats.h"
+
 /**
  * TrueNorth LP Neuron Model struct
  */
@@ -32,17 +33,16 @@ typedef struct TN_MODEL {
   // 32
   volt_type membranePotential;  //!< current "voltage" of neuron, \f$V_j(t)\f$.
   //!Since this is PDES, \a t is implicit
-  thresh_type posThreshold;     //!< neuron's threshold value 𝛼
-  thresh_type negThreshold;     //!< neuron's negative threshold, 𝛽
+  uint32_t posThreshold;     //!< neuron's threshold value 𝛼
+  uint32_t negThreshold;     //!< neuron's negative threshold, 𝛽
 
   // 16
   id_type dendriteLocal;  //!< Local ID of the remote dendrite -- not LPID, but
   //!a local axon value (0-i)
-  random_type drawnRandomNumber;  //!<When activated, neurons draw a new random
+  uint16_t drawnRandomNumber;  //!<When activated, neurons draw a new random
   //!number. Reset after every big-tick as
   //!needed.
-  random_type
-      thresholdPRNMask; /**!< The neuron's random threshold mask - used for
+  uint16_t thresholdPRNMask; /**!< The neuron's random threshold mask - used for
                       *randomized thresholds ( \f$M_j\f$ ).
                       *	In the TN hardware this is defined as a ones maks of
                       *configurable width, starting at the
@@ -94,7 +94,6 @@ typedef struct TN_MODEL {
   bool isActiveNeuron; /**!< If true, this neuron is an inactive one in the
 						  simulation */
 
-
   int firecount;
   tw_stime lastFire;
   long outputNeuronDest;
@@ -106,8 +105,6 @@ typedef struct TN_MODEL {
   //!neuron j?
   /** stochastic weight mode selection. $b_j^{G_i}$ */
   bool weightSelection[NUM_NEURON_WEIGHTS];
-
-
 
   // TODO - print address offsets fof structs for performance
 
