@@ -84,7 +84,7 @@ long setupBinaryNeurons();
  * @param neuronLocal
  * @param n
  */
-bool loadNeuronFromBIN(id_type neuronCore, id_type neuronLocal, tn_neuron_state *n);
+bool loadNeuronFromBIN(id_type neuronCore, id_type neuronLocal, struct NeuronState *n);
 /**@}*/
 
 /**

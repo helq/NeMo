@@ -19,7 +19,7 @@ tw_lptype model_lps[] = {
         (commit_f) axon_commit,
         (final_f) axon_final,
         (map_f) getPEFromGID,
-        sizeof(axonState)},
+        sizeof(struct AxonState)},
     {
         (init_f) synapse_init,
         (pre_run_f) synapse_pre_run,
@@ -28,7 +28,7 @@ tw_lptype model_lps[] = {
         (commit_f) NULL,
         (final_f) synapse_final,
         (map_f) getPEFromGID,
-        sizeof(synapseState)
+        sizeof(struct SynapseState)
     },
     {
         (init_f) TN_init,
@@ -38,7 +38,7 @@ tw_lptype model_lps[] = {
         (commit_f) TN_commit,
         (final_f) TN_final,
         (map_f) getPEFromGID,
-        sizeof(tn_neuron_state)
+        sizeof(struct NeuronState)
     },
     {0}};
 

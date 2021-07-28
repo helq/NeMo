@@ -37,20 +37,7 @@ struct messageData {
   bool *neuronConn;
   //};
   //message tracking values:
-#ifdef SAVE_MSGS
-  union {
-    uint64_t uuid;
-    struct {
-      uint16_t idp1;
-      uint16_t idp2;
-      uint32_t idp3;
-    };
-  };
   tw_lpid originGID;
-  char originComponent;
-
-  //tw_stime msgCreationTime;
-#endif
 };
 
 #endif /* end of include guard */

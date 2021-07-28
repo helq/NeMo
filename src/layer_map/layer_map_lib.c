@@ -154,14 +154,14 @@ void setupGrid(int showMapping) {
     //    %ui chips and %ui layers", NUM_CHIPS_IN_SIM, NUM_LAYERS_IN_SIM);
   }
 }
-bool inFirstLayer(tn_neuron_state *s) {
+bool inFirstLayer(struct NeuronState *s) {
   if (s->myCoreID > CORES_PER_LAYER) {
     return true;
   }
   return false;
 };
 
-bool inLastLayer(tn_neuron_state *s) {
+bool inLastLayer(struct NeuronState *s) {
   if (s->myCoreID >= CORES_PER_LAYER * (NUM_LAYERS_IN_SIM - 1) ||
       s->outputGID >= SIM_SIZE) {
     return true;
@@ -169,7 +169,7 @@ bool inLastLayer(tn_neuron_state *s) {
   return false;
 }
 
-void configureGridNeuron(tn_neuron_state *s, tw_lp *lp) {
+void configureGridNeuron(struct NeuronState *s, tw_lp *lp) {
   for (int i = 0; i < NEURONS_IN_CORE; i++) {
     s->synapticConnectivity[i] = 1;
     s->axonTypes[i] = 0;
@@ -190,7 +190,7 @@ void configureGridNeuron(tn_neuron_state *s, tw_lp *lp) {
   }
 }
 
-void configureNeuronInLayer(tn_neuron_state *s, tw_lp *lp) {
+void configureNeuronInLayer(struct NeuronState *s, tw_lp *lp) {
   switch (LAYER_NET_MODE) {
   case GRID_LAYER:
     configureGridNeuron(s, lp);

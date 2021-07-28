@@ -160,7 +160,6 @@ void displayModelSettings() {
   printf("* \t Network is a %s network.\n", netMode);
   printf("* \t Neuron stats:\n");
   printf("* \tCalculated sim_size is %lu\n", SIM_SIZE);
-  printf("* \tSave Messages: %i \n", SAVE_MSGS);
 
   printf(TXT_HEADER);
 

@@ -75,7 +75,7 @@ void initDataStructures(int simSize) {
  * @param n
  * @param state
  */
-int neuronConnToSCSV(tn_neuron_state *n, char *state) {
+int neuronConnToSCSV(struct NeuronState *n, char *state) {
   id_type destCore = getCoreFromGID(n->outputGID);
   id_type destAxon = getAxonLocal(n->outputGID);
   id_type core = n->myCoreID;
@@ -83,7 +83,7 @@ int neuronConnToSCSV(tn_neuron_state *n, char *state) {
   return sprintf(state, "%li,%li,%li,%li\n", core, local, destCore, destAxon);
 }
 void saveIndNeuron(void *ns) {
-  tn_neuron_state *n = (tn_neuron_state *)ns;
+  struct NeuronState *n = (struct NeuronState *)ns;
   char *line = calloc(sizeof(char), 128);
   neuronConnToSCSV(n, line);
   list_append(&networkStructureList, line);
@@ -97,7 +97,7 @@ void saveIndNeuron(void *ns) {
 }
 
 int threaded = 1;
-void saveIndNeuronTh(tn_neuron_state *ns) {
+void saveIndNeuronTh(struct NeuronState *ns) {
   char line[NEURONS_IN_CORE] = {'\0'};
   neuronConnToSCSV(ns, line);
   fprintf(outNetworkCfgFile, line);
@@ -118,7 +118,7 @@ void *fileWorker() {
         threaded = false;
         break;
       }
-      tn_neuron_state *n = nd;
+      struct NeuronState *n = nd;
       fprintf(outNeuronCfgFile, "%li, %li, %li, %li", n->myCoreID, n->myLocalID,
               n->outputNeuronDest, n->outputCoreDest);
       char ncon[NEURONS_IN_CORE * 3] = {'\0'};
@@ -216,7 +216,7 @@ void saveNetworkStructureMPI() {
     for (int i = neuron_start; i < num_neurons_per_rank; i++) {
       tw_lpid wanted_neuron =
           getGIDFromLocalIDs(i / NEURONS_IN_CORE, i % NEURONS_IN_CORE);
-      tn_neuron_state *n = tw_getlocal_lp(wanted_neuron)->cur_state;
+      struct NeuronState *n = tw_getlocal_lp(wanted_neuron)->cur_state;
       sprintf(neuron_data, "%s%15li,%15li,%15li,%15li,", neuron_data,
               n->myCoreID, n->myLocalID, getCoreFromGID(n->outputGID),
               getNeuronLocalFromGID(n->outputGID));
@@ -241,7 +241,7 @@ void saveNetworkStructureMPI() {
   }
 }
 
-void debug_neuron_connections(tn_neuron_state *n, tw_lp *lp) {
+void debug_neuron_connections(struct NeuronState *n, tw_lp *lp) {
   static FILE *rank_output;
   static int rank_output_open = 0;
   if (!rank_output_open) {
@@ -300,7 +300,7 @@ void saveNetworkStructure() {
   for (int core = 0; core < CORES_IN_SIM / 1; core++) {
     for (int neuron = 0; neuron < NEURONS_IN_CORE; neuron++) {
       tw_lpid ngid = getNeuronGlobal(core, neuron);
-      tn_neuron_state *n = (tn_neuron_state *)tw_getlp(ngid);
+      struct NeuronState *n = (struct NeuronState *)tw_getlp(ngid);
       // sprintf(lntxt, "%llu, %llu", n->myCoreID, n->myLocalID);
       fprintf(outNeuronCfgFile, "%li, %li", n->myCoreID, n->myLocalID);
       fflush(outNeuronCfgFile);
@@ -341,7 +341,7 @@ void saveNetworkStructure() {
     for (int neuron = 0; neuron < NEURONS_IN_CORE; neuron++) {
       // save neuron connections to CSV file:
       tw_lpid ngid = getNeuronGlobal(core, neuron);
-      tn_neuron_state *n = (tn_neuron_state *)tw_getlocal_lp(ngid);
+      struct NeuronState *n = (struct NeuronState *)tw_getlocal_lp(ngid);
 
       char *line = tw_calloc(TW_LOC, "SAVE_STRUCTURE", sizeof(char), 512);
       neuronConnToSCSV(n, line);

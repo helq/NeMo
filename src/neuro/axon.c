@@ -12,43 +12,11 @@
 #include "../mapping.h"
 #include "axon.h"
 
-list_t spikeList;
-FILE *spikeFile;
+static list_t spikeList;
+static FILE *spikeFile;
+static FILE *dumpi_out1;
 
-// Global Message CSV Writer -- for debug and message traacing
-#ifdef SAVE_MSGS
-// csv_writer * messageTrace;
-//
-// void axon_mark_message(axonState *s, struct messageData *M, tw_lpid gid, tw_lp *lp){
-//
-//	if(!M->originGID){
-//		M->originGID = gid;
-//		M->msgCreationTime = tw_now(lp);
-//		M->idp1 = s->axonID;
-//		M->idp2 = getCoreFromGID(gid);
-//		M->idp3 = s->sendMsgCount;
-//	}
-//	char * dm = tw_calloc(TW_LOC,2, sizeof(char), 256);
-//	print(M->uuid);printf("\n");
-//	sprint(dm,M->uuid);
-//	addCol(messageTrace,dm , 0);
-//	dm = tw_calloc(TW_LOC,2, sizeof(char), 256);
-//	sprint(dm,M->originGID);
-//	addCol(messageTrace, dm ,0);
-//	dm = tw_calloc(TW_LOC,2 ,sizeof(char), 256);
-//	sprint(dm,M->msgCreationTime);
-//	addCol(messageTrace, dm, 0);
-//	dm = tw_calloc(TW_LOC,2,  sizeof(char), 256);
-//	//sprint(dm,"Axon");
-//	sprintf(dm, "%s", "Axon");
-//	addCol(messageTrace, dm, 1);
-//	addCol(messageTrace, lp->gid, 0);
-//	addRow(messageTrace);
-//
-//}
-#endif
-FILE *dumpi_out1;
-void scheduleSpike(long time, id_type axonID, tw_lp *lp) {
+static void scheduleSpike(long time, id_type axonID, tw_lp *lp) {
   tw_stime sched_event = time + JITTER;
   tw_event *axevt = tw_event_new(lp->gid, sched_event, lp);
   struct messageData *data = tw_event_data(axevt);
@@ -57,10 +25,11 @@ void scheduleSpike(long time, id_type axonID, tw_lp *lp) {
   data->eventType = AXON_OUT;
   tw_event_send(axevt);
 }
-int axonct = 0;
 
-/** Not used in NeMo2 */
-void axonSpikeReader(axonState *s, tw_lp *lp) {
+static int axonct = 0;
+
+/* Not used in NeMo2 */
+static void axonSpikeReader(struct AxonState *s, tw_lp *lp) {
   static char announce = 1;
   // static int axonct = 0;
   if (g_tw_mynode == 0) {
@@ -90,7 +59,7 @@ void axonSpikeReader(axonState *s, tw_lp *lp) {
   spikeFromAxonComplete(&spikeList);
 }
 
-void axon_init(axonState *s, tw_lp *lp) {
+void axon_init(struct AxonState *s, tw_lp *lp) {
   static int fileInit = 0;
   ///// DUMPI FILE
   if (DO_DUMPI && !fileInit) {
@@ -147,7 +116,7 @@ void axon_init(axonState *s, tw_lp *lp) {
   // printf("message ready at %f",r);
 }
 
-void axon_event(axonState *s, tw_bf *CV, struct messageData *M, tw_lp *lp) {
+void axon_event(struct AxonState *s, tw_bf *CV, struct messageData *M, tw_lp *lp) {
   // generate new message
   // enum evtType mt = M->eventType;
   long rc = lp->rng->count;
@@ -164,7 +133,8 @@ void axon_event(axonState *s, tw_bf *CV, struct messageData *M, tw_lp *lp) {
   s->sendMsgCount++;
   M->rndCallCount = lp->rng->count - rc;
 }
-void axon_reverse(axonState *s, tw_bf *CV, struct messageData *M, tw_lp *lp) {
+
+void axon_reverse(struct AxonState *s, tw_bf *CV, struct messageData *M, tw_lp *lp) {
   --s->sendMsgCount;
 
   long count = M->rndCallCount;
@@ -173,7 +143,7 @@ void axon_reverse(axonState *s, tw_bf *CV, struct messageData *M, tw_lp *lp) {
   }
 }
 
-void axon_final(axonState *s, tw_lp *lp) {
+void axon_final(struct AxonState *s, tw_lp *lp) {
   static int fileOpen = 1;
   if (DO_DUMPI && fileOpen) {
     fclose(dumpi_out1);
@@ -181,7 +151,7 @@ void axon_final(axonState *s, tw_lp *lp) {
   }
 }
 
-void axon_commit(axonState *s, tw_bf *CV, struct messageData *M, tw_lp *lp) {
+void axon_commit(struct AxonState *s, tw_bf *CV, struct messageData *M, tw_lp *lp) {
   if (DO_DUMPI && M->isRemote) {
     // saveMPIMessage(s->myCoreID, getCoreFromGID(s->outputGID), tw_now(lp),
     //			   dumpi_out);

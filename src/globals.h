@@ -7,9 +7,6 @@
 #ifndef __NEMO_GLOBALS_H__
 #define __NEMO_GLOBALS_H__
 
-#define BGQ 1
-#define NET_IO_DEBUG 1
-
 #include <stdbool.h>
 #include <nemo_config.h>
 #include "ross.h"

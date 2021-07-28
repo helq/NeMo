@@ -41,7 +41,7 @@ static FILE *dumpi_out;
  * TrueNorth Neuron leak, integrate, and fire function forward decs.
  * @{ */
 
-static void TNFire(tn_neuron_state *st, void *l);
+static void TNFire(struct NeuronState *st, void *l);
 
 /**
  *  @brief  function that adds a synapse's value to the current neuron's
@@ -49,7 +49,7 @@ static void TNFire(tn_neuron_state *st, void *l);
  *
  *  @param synapseID localID of the synapse sending the message.
  */
-static void TNIntegrate(id_type synapseID, tn_neuron_state *st, void *lp);
+static void TNIntegrate(id_type synapseID, struct NeuronState *st, void *lp);
 /**
 *  @brief  handles incomming synapse messages. In this model, the neurons send
 messages to axons during "big tick" intervals.
@@ -61,7 +61,7 @@ the current big-tick.
 *  @param lp   lp.
 */
 
-static bool TNReceiveMessage(tn_neuron_state *st, struct messageData *m, tw_lp *lp,
+static bool TNReceiveMessage(struct NeuronState *st, struct messageData *m, tw_lp *lp,
                              tw_bf *bf);
 
 /**
@@ -72,7 +72,7 @@ static bool TNReceiveMessage(tn_neuron_state *st, struct messageData *m, tw_lp *
  * @param bf the reverse computation bitfield.
  */
 
-static void TNReceiveReverseMessage(tn_neuron_state *st, struct messageData *M,
+static void TNReceiveReverseMessage(struct NeuronState *st, struct messageData *M,
                                     tw_lp *lp, tw_bf *bf);
 
 /**
@@ -84,14 +84,14 @@ static void TNReceiveReverseMessage(tn_neuron_state *st, struct messageData *M,
  *
  *  @return true if the neuron is ready to fire.
  */
-static bool TNShouldFire(tn_neuron_state *st, tw_lp *lp);
+static bool TNShouldFire(struct NeuronState *st, tw_lp *lp);
 
 /**
  * @brief New firing system using underflow/overflow and reset.
  * @return true if neuron is ready to fire. Membrane potential is set
  * regardless.
  */
-static bool TNfireFloorCelingReset(tn_neuron_state *ns, tw_lp *lp);
+static bool TNfireFloorCelingReset(struct NeuronState *ns, tw_lp *lp);
 
 /**
  *  @brief  Neuron stochastic integration function - for use with stochastic
@@ -100,7 +100,7 @@ static bool TNfireFloorCelingReset(tn_neuron_state *ns, tw_lp *lp);
  *  @param weight weight of selected leak or synapse
  *  @param st     the neuron state
  */
-static void TNstochasticIntegrate(int64_t weight, tn_neuron_state *st);
+static void TNstochasticIntegrate(int64_t weight, struct NeuronState *st);
 
 /**
  *  @brief NumericLeakCalc - uses formula from the TrueNorth paper to calculate
@@ -116,16 +116,16 @@ static void TNstochasticIntegrate(int64_t weight, tn_neuron_state *st);
  * reset.
  *  @TODO: test leaking functions
  */
-static void TNNumericLeakCalc(tn_neuron_state *st, tw_stime now);
+static void TNNumericLeakCalc(struct NeuronState *st, tw_stime now);
 
-static void TNSendHeartbeat(tn_neuron_state *st, tw_stime time, void *lp);
+static void TNSendHeartbeat(struct NeuronState *st, tw_stime time, void *lp);
 
 static void tn_create_neuron_encoded_rv(
     id_type coreID, id_type nID, bool synapticConnectivity[NEURONS_IN_CORE],
     short G_i[NEURONS_IN_CORE], short sigma[4], short S[4], bool b[4],
     bool epsilon, short sigma_l, short lambda, bool c, uint32_t alpha,
     uint32_t beta, short TM, short VR, short sigmaVR, short gamma, bool kappa,
-    tn_neuron_state *n, int signalDelay, uint64_t destGlobalID, int destAxonID);
+    struct NeuronState *n, int signalDelay, uint64_t destGlobalID, int destAxonID);
 
 /** From Neuron Behavior Reference - checks to make sure that there is no
  "ringing".
@@ -137,7 +137,7 @@ static void ringing(void *nsv, int32_t oldVoltage);
 
 /** @} */
 
-static bool fireTimingCheck(tn_neuron_state *s, tw_lp *lp) {
+static bool fireTimingCheck(struct NeuronState *s, tw_lp *lp) {
   // check to see if the fire event should occur.
   // Neurons can output one spike per big tick.
   // in Debug mode, we set the last fired time and update the count.
@@ -210,7 +210,7 @@ static bool fireTimingCheck(tn_neuron_state *s, tw_lp *lp) {
  * negative saturation reset function (common to all reset modes, called if
  * 𝛾 is true. Simply sets the value of the membrane potential to $-𝛽_j$.
  **/
-static void negThresholdReset(tn_neuron_state *s) {
+static void negThresholdReset(struct NeuronState *s) {
   s->membranePotential = -s->negThreshold;
 }
 
@@ -219,7 +219,7 @@ static void negThresholdReset(tn_neuron_state *s) {
  * Normal reset function.
  */
 static void resetNormal(void *neuronState) {
-  tn_neuron_state *s = (tn_neuron_state *)neuronState;
+  struct NeuronState *s = (struct NeuronState *)neuronState;
   if (s->membranePotential < s->negThreshold) {
     if (s->kappa)
       negThresholdReset(s);
@@ -235,7 +235,7 @@ static void resetNormal(void *neuronState) {
  *  to the difference between the threshold and the potential. *
  */
 static void resetLinear(void *neuronState) {
-  tn_neuron_state *s = (tn_neuron_state *)neuronState;
+  struct NeuronState *s = (struct NeuronState *)neuronState;
 
   if (s->membranePotential < s->negThreshold) {
     if (s->kappa)
@@ -256,7 +256,7 @@ static void resetLinear(void *neuronState) {
  * paper.
  */
 static void resetNone(void *neuronState) {
-  tn_neuron_state *s = (tn_neuron_state *)neuronState;
+  struct NeuronState *s = (struct NeuronState *)neuronState;
 
   if (s->kappa && s->membranePotential < s->negThreshold) {
     negThresholdReset(s);
@@ -273,7 +273,7 @@ static void resetNone(void *neuronState) {
  The specs state that the leak stores the voltage in a temporary variable. Here,
  we store the leak voltage in the membrane potential, and override it with a new
  value. */
-static void TNFire(tn_neuron_state *st, void *l) {
+static void TNFire(struct NeuronState *st, void *l) {
 
   // tw_lp *lp = (tw_lp *) l;
 
@@ -304,7 +304,7 @@ static void TNFire(tn_neuron_state *st, void *l) {
   //}
 }
 
-static bool TNReceiveMessage(tn_neuron_state *st, struct messageData *m, tw_lp *lp,
+static bool TNReceiveMessage(struct NeuronState *st, struct messageData *m, tw_lp *lp,
                              tw_bf *bf) {
   /** @todo Replace these state saving values with reverse computation. */
   m->neuronVoltage = st->membranePotential;
@@ -420,7 +420,7 @@ static bool TNReceiveMessage(tn_neuron_state *st, struct messageData *m, tw_lp *
   return willFire;
 }
 
-static void TNReceiveReverseMessage(tn_neuron_state *st, struct messageData *M,
+static void TNReceiveReverseMessage(struct NeuronState *st, struct messageData *M,
                                     tw_lp *lp, tw_bf *bf) {
   if (M->eventType == NEURON_HEARTBEAT) {
     // reverse heartbeat message
@@ -451,13 +451,13 @@ static void TNReceiveReverseMessage(tn_neuron_state *st, struct messageData *M,
  * @param[in]  oldVoltage  The old voltage
  */
 static void ringing(void *nsv, int32_t oldVoltage) {
-  tn_neuron_state *ns = (tn_neuron_state *)nsv;
+  struct NeuronState *ns = (struct NeuronState *)nsv;
   if (ns->epsilon && (SGN(ns->membranePotential) != SGN(oldVoltage))) {
     ns->membranePotential = 0;
   }
 }
 
-static void TNIntegrate(id_type synapseID, tn_neuron_state *st, void *lp) {
+static void TNIntegrate(id_type synapseID, struct NeuronState *st, void *lp) {
   // tw_lp *l = (tw_lp *) lp;
   // int at = st->axonTypes[synapseID];
   bool const con = st->synapticConnectivity[synapseID];
@@ -483,7 +483,7 @@ static void TNIntegrate(id_type synapseID, tn_neuron_state *st, void *lp) {
   }
 }
 
-static void TNSendHeartbeat(tn_neuron_state *st, tw_stime time, void *lp) {
+static void TNSendHeartbeat(struct NeuronState *st, tw_stime time, void *lp) {
   tw_lp *l = (tw_lp *)lp;
   tw_event *newEvent =
       tw_event_new(l->gid, getNextBigTick(l, st->myLocalID), l);
@@ -500,7 +500,7 @@ static void TNSendHeartbeat(tn_neuron_state *st, tw_stime time, void *lp) {
 }
 
 static bool overUnderflowCheck(void *ns) {
-  tn_neuron_state *n = (tn_neuron_state *)ns;
+  struct NeuronState *n = (struct NeuronState *)ns;
 
   int ceiling = 393216;
   int floor = -393216;
@@ -514,14 +514,14 @@ static bool overUnderflowCheck(void *ns) {
   return spike;
 }
 
-static bool TNShouldFire(tn_neuron_state *st, tw_lp *lp) {
+static bool TNShouldFire(struct NeuronState *st, tw_lp *lp) {
   // check negative threshold values:
   int32_t threshold = st->posThreshold;
   return (st->membranePotential >= threshold &&
           fireTimingCheck(st, lp)); // + (st->drawnRandomNumber));
 }
 
-static bool TNfireFloorCelingReset(tn_neuron_state *ns, tw_lp *lp) {
+static bool TNfireFloorCelingReset(struct NeuronState *ns, tw_lp *lp) {
   bool shouldFire = false;
   ///@TODO remove this line later for performacne - check that neuron init
   /// handles this properly.
@@ -579,13 +579,13 @@ static bool TNfireFloorCelingReset(tn_neuron_state *ns, tw_lp *lp) {
   return shouldFire;
 }
 
-static void TNstochasticIntegrate(int64_t weight, tn_neuron_state *st) {
+static void TNstochasticIntegrate(int64_t weight, struct NeuronState *st) {
   if (BINCOMP(weight, st->drawnRandomNumber)) {
     st->membranePotential += 1;
   }
 }
 
-static void TNNumericLeakCalc(tn_neuron_state *st, tw_stime now) {
+static void TNNumericLeakCalc(struct NeuronState *st, tw_stime now) {
   // shortcut for calcuation - neurons do not leak if:
   // lambda is zero:
   if (st->lambda == 0)
@@ -631,7 +631,7 @@ static void TNNumericLeakCalc(tn_neuron_state *st, tw_stime now) {
  * @{ */
 
 static void TN_set_neuron_dest(int signalDelay, uint64_t gid,
-                               tn_neuron_state *n) {
+                               struct NeuronState *n) {
   n->delayVal = signalDelay;
   n->outputGID = gid;
 }
@@ -652,7 +652,7 @@ static void tn_create_neuron(id_type coreID, id_type nID,
                              short S[4], bool b[4], bool epsilon, short sigma_l,
                              short lambda, bool c, uint32_t alpha,
                              uint32_t beta, short TM, short VR, short sigmaVR,
-                             short gamma, bool kappa, tn_neuron_state *n,
+                             short gamma, bool kappa, struct NeuronState *n,
                              int signalDelay, uint64_t destGlobalID,
                              int destAxonID) {
   for (int i = 0; i < 4; i++) {
@@ -711,7 +711,7 @@ static void tn_create_neuron_encoded_rv_non_global(
     int coreID, int nID, bool synapticConnectivity[NEURONS_IN_CORE],
     short G_i[NEURONS_IN_CORE], short sigma[4], short S[4], bool b[4],
     bool epsilon, int sigma_l, int lambda, bool c, int alpha, int beta, int TM,
-    int VR, int sigmaVR, int gamma, bool kappa, tn_neuron_state *n,
+    int VR, int sigmaVR, int gamma, bool kappa, struct NeuronState *n,
     int signalDelay, int destCoreID, int destAxonID) {
   uint64_t dest_global = getNeuronGlobal(destCoreID, destAxonID);
   tn_create_neuron_encoded_rv(coreID, nID, synapticConnectivity, G_i, sigma, S,
@@ -725,7 +725,7 @@ static void tn_create_neuron_encoded_rv(
     short G_i[NEURONS_IN_CORE], short sigma[4], short S[4], bool b[4],
     bool epsilon, short sigma_l, short lambda, bool c, uint32_t alpha,
     uint32_t beta, short TM, short VR, short sigmaVR, short gamma, bool kappa,
-    tn_neuron_state *n, int signalDelay, uint64_t destGlobalID,
+    struct NeuronState *n, int signalDelay, uint64_t destGlobalID,
     int destAxonID) {
   tn_create_neuron(coreID, nID, synapticConnectivity, G_i, sigma, S, b, epsilon,
                    sigma_l, lambda, c, alpha, beta, TM, VR, sigmaVR, gamma,
@@ -745,7 +745,7 @@ static void tn_create_neuron_encoded_rv(
  * @param      s     { parameter_description }
  * @param      lp    The pointer to a
  */
-static void TN_create_simple_neuron(tn_neuron_state *s, tw_lp *lp) {
+static void TN_create_simple_neuron(struct NeuronState *s, tw_lp *lp) {
   // Rewrote this function to have a series of variables that are easier to
   // read.
   // Since init time is not so important, readability wins here.
@@ -832,7 +832,7 @@ static void TN_create_simple_neuron(tn_neuron_state *s, tw_lp *lp) {
  * @param s
  * @param lp
  */
-static void TN_create_saturation_neuron(tn_neuron_state *s, tw_lp *lp) {
+static void TN_create_saturation_neuron(struct NeuronState *s, tw_lp *lp) {
 
   static uint64_t numCreated = 0;
   bool synapticConnectivity[NEURONS_IN_CORE];
@@ -920,7 +920,7 @@ static FILE *core_connectivity_map;
 //#define GA(N, T) (getArray( (#N) , &(N), (T) ))
 #define TID core, nid, "TN"
 static long num_neg_found = 0;
-static void TNPopulateFromFile(tn_neuron_state *st, tw_lp *lp) {
+static void TNPopulateFromFile(struct NeuronState *st, tw_lp *lp) {
 
   int const extraParamCache = 32;
   // Set up neuron - first non array params:
@@ -1044,7 +1044,7 @@ static void TNPopulateFromFile(tn_neuron_state *st, tw_lp *lp) {
 
 
  */
-static void TNCreateFromFile(tn_neuron_state *s, tw_lp *lp) {
+static void TNCreateFromFile(struct NeuronState *s, tw_lp *lp) {
 
   static int needannounce = 1;
 
@@ -1092,7 +1092,7 @@ static void TNCreateFromFile(tn_neuron_state *s, tw_lp *lp) {
   }
 }
 
-void TN_pre_run(tn_neuron_state *s, tw_lp *me) {
+void TN_pre_run(struct NeuronState *s, tw_lp *me) {
 
   static bool clean = false;
   static bool core_con_open = false;
@@ -1146,7 +1146,7 @@ void TN_pre_run(tn_neuron_state *s, tw_lp *me) {
  * @{
  * */
 
-void TN_init(tn_neuron_state *s, tw_lp *lp) {
+void TN_init(struct NeuronState *s, tw_lp *lp) {
 #ifdef DEBUG
   static int an = 0;
   if (!an && g_tw_mynode == 0) {
@@ -1213,7 +1213,7 @@ void TN_init(tn_neuron_state *s, tw_lp *lp) {
   s->energy_stat.my_core = s->myCoreID;
 }
 
-void TN_forward_event(tn_neuron_state *s, tw_bf *CV, struct messageData *m,
+void TN_forward_event(struct NeuronState *s, tw_bf *CV, struct messageData *m,
                       tw_lp *lp) {
   long const start_count = lp->rng->count;
   // This is the primary entry point to the neuron behavior.
@@ -1233,7 +1233,7 @@ void TN_forward_event(tn_neuron_state *s, tw_bf *CV, struct messageData *m,
   s->energy_stat.rng_count += m->rndCallCount;
 }
 
-void TN_reverse_event(tn_neuron_state *s, tw_bf *CV, struct messageData *m,
+void TN_reverse_event(struct NeuronState *s, tw_bf *CV, struct messageData *m,
                       tw_lp *lp) {
   if (!s->isActiveNeuron) {
     return;
@@ -1269,7 +1269,7 @@ static int debug_core_open = 0;
  * @param m
  * @param lp
  */
-static void TN_save_events(tn_neuron_state *s, tw_bf *cv, struct messageData *m,
+static void TN_save_events(struct NeuronState *s, tw_bf *cv, struct messageData *m,
                            tw_lp *lp) {
 
   unsigned int fired = cv->c0 | cv->c31 | cv->c10;
@@ -1285,7 +1285,7 @@ static void TN_save_events(tn_neuron_state *s, tw_bf *cv, struct messageData *m,
 
 /** TN_commit is a function called on commit. This is used for management of
  * neurons! */
-void TN_commit(tn_neuron_state *s, tw_bf *cv, struct messageData *m, tw_lp *lp) {
+void TN_commit(struct NeuronState *s, tw_bf *cv, struct messageData *m, tw_lp *lp) {
   // if neuron has fired and save neuron fire events is enabled, save this
   // event.
   // if (SAVE_SPIKE_EVTS && cv->c0) {
@@ -1346,7 +1346,7 @@ void TN_commit(tn_neuron_state *s, tw_bf *cv, struct messageData *m, tw_lp *lp) 
 #endif
 }
 
-void TN_final(tn_neuron_state *s, tw_lp *lp) {
+void TN_final(struct NeuronState *s, tw_lp *lp) {
   static int fileOpen = 1;
   if (fileOpen) {
     /////////// DEBUG CODE REMOVE WHEN DONE /////////////
@@ -1372,19 +1372,19 @@ void TN_final(tn_neuron_state *s, tw_lp *lp) {
   }
 }
 
-inline tn_neuron_state *TN_convert(void *lpstate) {
-  return (tn_neuron_state *)lpstate;
+inline struct NeuronState *TN_convert(void *lpstate) {
+  return (struct NeuronState *)lpstate;
 }
 
 /**@}*/
 /** RIO Functions for neuron config  @{ **/
-size_t tn_size(tn_neuron_state *s, tw_lp *lp) {
-  size_t neuronSize = sizeof(tn_neuron_state);
+size_t tn_size(struct NeuronState *s, tw_lp *lp) {
+  size_t neuronSize = sizeof(struct NeuronState);
   return neuronSize;
 }
-void tn_serialize(tn_neuron_state *s, void *buffer, tw_lp *lp) {
-  memcpy(buffer, s, sizeof(tn_neuron_state));
+void tn_serialize(struct NeuronState *s, void *buffer, tw_lp *lp) {
+  memcpy(buffer, s, sizeof(struct NeuronState));
 }
-void tn_deserialize(tn_neuron_state *s, void *buffer, tw_lp *lp) {
-  memcpy(s, buffer, sizeof(tn_neuron_state));
+void tn_deserialize(struct NeuronState *s, void *buffer, tw_lp *lp) {
+  memcpy(s, buffer, sizeof(struct NeuronState));
 }

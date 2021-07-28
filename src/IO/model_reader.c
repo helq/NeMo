@@ -18,7 +18,7 @@
 static FILE *bin_file;
 static int bin_file_open = 0;
 static void *kd;
-static tn_neuron_state **state_vec;
+static struct NeuronState **state_vec;
 static long num_n;
 
 int openBinaryModelFile(char *binFileName) {
@@ -33,17 +33,17 @@ long setupBinaryNeurons() {
   // load metadata from file:
   long num_neurons;
   fscanf(bin_file, "%li\n", &num_neurons);
-  state_vec = calloc(num_neurons, sizeof(tn_neuron_state *));
+  state_vec = calloc(num_neurons, sizeof(struct NeuronState *));
   // Load neurons into array of neurons:
-  // tn_neuron_state **bin_neurons =
-  // tw_calloc(TW_LOC,"TEMP_KD",sizeof(tn_neuron_state*), num_neurons);
+  // struct NeuronState **bin_neurons =
+  // tw_calloc(TW_LOC,"TEMP_KD",sizeof(struct NeuronState*), num_neurons);
   // fread(bin_neurons,sizeof(bin_neurons[0]), num_neurons,bin_file);
   // loaded neurons. Store them in the KD tree:
   kd = kd_create(2);
   for (int i = 0; i < num_neurons; i++) {
-    // tn_neuron_state *n = bin_neurons[i];
-    tn_neuron_state *n =
-        tw_calloc(TW_LOC, "Binary Neuron", sizeof(tn_neuron_state), 1);
+    // struct NeuronState *n = bin_neurons[i];
+    struct NeuronState *n =
+        tw_calloc(TW_LOC, "Binary Neuron", sizeof(struct NeuronState), 1);
     state_vec[i] = n;
     fread(n, sizeof(n), 1, bin_file);
     int core_id = n->myCoreID;
@@ -56,10 +56,10 @@ long setupBinaryNeurons() {
 }
 
 bool loadNeuronFromBIN(id_type neuronCore, id_type neuronLocal,
-                       tn_neuron_state *n) {
+                       struct NeuronState *n) {
   float pos[] = {neuronCore, neuronLocal};
   struct kdres *res = kd_nearestf(kd, pos);
-  tn_neuron_state *new_state;
+  struct NeuronState *new_state;
   new_state = kd_res_itemf(res, pos);
   bool found = false;
   if (new_state->myLocalID == neuronLocal &&
@@ -72,7 +72,7 @@ bool loadNeuronFromBIN(id_type neuronCore, id_type neuronLocal,
     }
 #endif
 
-    memcpy(n, new_state, sizeof(tn_neuron_state));
+    memcpy(n, new_state, sizeof(struct NeuronState));
     found = true;
   }
 

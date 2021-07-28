@@ -61,10 +61,6 @@ set(NeMo_NUM_WEIGHTS_IN_NEURON 4 CACHE STRING "How many weights does a neuron ha
 #set(NeMo_MODEL_FILE "./nemo_model.nfg1" CACHE STRING "Location and name of the NeMo Model Config File")
 #set(NeMo_SPIKE_FILE "./nemo_spike.csv" CACHE STRING "Location and name of the NeMo input spike file")
 set(NeMo_DEBUG 0 CACHE BOOL "Debug mode")
-# set(NeMo_SAVE_MSG FALSE CACHE BOOL "Save message paths to CSV or Couch? (debug messages)")
-# set(NeMo_SAVE_MSG_COUCH FALSE CACHE BOOL "Save message paths directly to couch?")
-# set(NeMo_COUCH_ADD "None" CACHE STRING "The IP address:PORT of the couch database if used")
-#
 
 ## KDTREE Library Options:
 OPTION(KD_fastalloc "KD-Tree Lib: Use fastalloc? " ON )
@@ -77,15 +73,6 @@ if(KD_pthread)
 else()
     add_definitions(-DNO_PTHREADS)
 endif()
-
-set(SAVE_MSGS 0)
-set(USE_COUCH 0)
-if (NeMo_SAVE_MSG)
-    set(SAVE_MSGS 1)
-    if (NeMo_SAVE_MSG_COUCH)
-        set(USE_COUCH 1)
-    endif ()
-endif ()
 
 ## Build Configuration Header File
 INCLUDE_DIRECTORIES(

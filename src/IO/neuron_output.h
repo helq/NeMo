@@ -15,6 +15,6 @@ void saveNeuronNetworkStructure(void *n);
 void saveNetworkStructureMPI();
 void saveNeuronPreRun();
 
-void debug_neuron_connections(tn_neuron_state *n,tw_lp *lp);
+void debug_neuron_connections(struct NeuronState *n,tw_lp *lp);
 
 #endif  // ifndef NEMO_IO_NEURON_OUTPUT_H

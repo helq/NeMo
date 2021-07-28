@@ -11,7 +11,7 @@
 /**
  * TrueNorth LP Neuron Model struct
  */
-typedef struct TN_MODEL {
+struct NeuronState {
   // big
   tn_energy energy_stat;
   // 64
@@ -110,6 +110,6 @@ typedef struct TN_MODEL {
   // uint32_t PRNSeedValue; //!< pseudo random number generator seed. @TODO: Add
   // PRNSeedValues to the neurons to improve TN compatibility.
 
-} tn_neuron_state;
+};
 
 #endif //SUPERNEMO_TN_NEURON_STRUCT_H

@@ -6,8 +6,8 @@
 #include "../IO/spike_db_reader.h"
 #include "../mapping.h"
 
-uint64_t numScheduledEvents = 0;
-void scheduleSp(tw_stime time, id_type axonID, tw_lp *lp) {
+static uint64_t numScheduledEvents = 0;
+static void scheduleSp(tw_stime time, id_type axonID, tw_lp *lp) {
 
   tw_event *synapsePrime = tw_event_new(lp->gid, time, lp);
   struct messageData *outData = tw_event_data(synapsePrime);
@@ -25,7 +25,7 @@ void scheduleSp(tw_stime time, id_type axonID, tw_lp *lp) {
  * @param lp My LP
  *
  */
-void loadSynapseSpikesFile(synapseState *s, tw_lp *lp) {
+static void loadSynapseSpikesFile(struct SynapseState *s, tw_lp *lp) {
   list_t spikelist;
   id_type myCore = s->myCore;
 
@@ -65,7 +65,7 @@ void loadSynapseSpikesFile(synapseState *s, tw_lp *lp) {
   }
 }
 
-void synapse_init(synapseState *s, tw_lp *lp) {
+void synapse_init(struct SynapseState *s, tw_lp *lp) {
   s->msgSent = 0;
   s->lastBigTick = 0;
   s->myCore = getCoreFromGID(lp->gid);
@@ -82,9 +82,9 @@ void synapse_init(synapseState *s, tw_lp *lp) {
 /**
  * Gets the next event time for synapse internal heartbeats -
  */
-tw_stime getNextSynapseHeartbeat(tw_lp *lp) { return JITTER + littleTick; }
+static tw_stime getNextSynapseHeartbeat(tw_lp *lp) { return JITTER + littleTick; }
 
-void sendSynapseHB(synapseState *s, tw_bf *bf, struct messageData *M, tw_lp *lp,
+static void sendSynapseHB(struct SynapseState *s, tw_bf *bf, struct messageData *M, tw_lp *lp,
                    unsigned long count) {
 
   tw_event *synapseHB = tw_event_new(lp->gid, getNextSynapseHeartbeat(lp), lp);
@@ -96,11 +96,12 @@ void sendSynapseHB(synapseState *s, tw_bf *bf, struct messageData *M, tw_lp *lp,
 
   tw_event_send(synapseHB);
 }
-void reverseSynapseHB(synapseState *s, tw_bf *bf, struct messageData *M, tw_lp *lp) {
+
+static void reverseSynapseHB(struct SynapseState *s, tw_bf *bf, struct messageData *M, tw_lp *lp) {
   M->synapseCounter++;
 }
 
-void synapse_event(synapseState *s, tw_bf *bf, struct messageData *M, tw_lp *lp) {
+void synapse_event(struct SynapseState *s, tw_bf *bf, struct messageData *M, tw_lp *lp) {
   unsigned long randCount = lp->rng->count;
 
   if (M->axonID > AXONS_IN_CORE)
@@ -129,7 +130,7 @@ void synapse_event(synapseState *s, tw_bf *bf, struct messageData *M, tw_lp *lp)
   M->rndCallCount = lp->rng->count - randCount;
 }
 
-void synapse_reverse(synapseState *s, tw_bf *bf, struct messageData *M, tw_lp *lp) {
+void synapse_reverse(struct SynapseState *s, tw_bf *bf, struct messageData *M, tw_lp *lp) {
 
   if (M->eventType == AXON_OUT) {
 
@@ -142,7 +143,7 @@ void synapse_reverse(synapseState *s, tw_bf *bf, struct messageData *M, tw_lp *l
   }
 }
 
-void synapse_final(synapseState *s, tw_lp *lp) {
+void synapse_final(struct SynapseState *s, tw_lp *lp) {
   // do some stats here if needed.
   static int announce = 0;
   if (!announce && g_tw_mynode == 0) {
@@ -157,7 +158,8 @@ void synapse_final(synapseState *s, tw_lp *lp) {
     }
   }
 }
-void synapse_pre_run(synapseState *s, tw_lp *lp) {
+
+void synapse_pre_run(struct SynapseState *s, tw_lp *lp) {
   static int should_close = 1;
   if (should_close) {
     closeSpikeFile();
