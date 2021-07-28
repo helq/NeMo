@@ -26,12 +26,11 @@ typedef struct TN_MODEL {
 
   tw_lpid outputGID;  //!< The output GID (axon global ID) of this neuron.
 
-  // stat_type fireCount; //!< count of this neuron's output
-  stat_type rcvdMsgCount;  //!<  The number of synaptic messages received.
-  stat_type SOPSCount;     //!<  A count for SOPS calculation
+  // uint64_t fireCount; //!< count of this neuron's output
+  uint64_t rcvdMsgCount;  //!<  The number of synaptic messages received.
 
   // 32
-  volt_type membranePotential;  //!< current "voltage" of neuron, \f$V_j(t)\f$.
+  int32_t membranePotential;  //!< current "voltage" of neuron, \f$V_j(t)\f$.
   //!Since this is PDES, \a t is implicit
   uint32_t posThreshold;     //!< neuron's threshold value 𝛼
   uint32_t negThreshold;     //!< neuron's negative threshold, 𝛽
@@ -62,7 +61,7 @@ typedef struct TN_MODEL {
   //!rate applied to the current leak function.
   short resetMode;     //!<Gamma or resetMode. 𝛾 Reset mode selection. Valid options are 0,1,2 .
 
-  volt_type resetVoltage;  //!< Reset voltage for reset params, \f$R\f$.
+  int32_t resetVoltage;  //!< Reset voltage for reset params, \f$R\f$.
   short sigmaVR;           //!< reset voltage - reset voltage sign
   short encodedResetVoltage;  //!< encoded reset voltage - VR.
   short omega;                //!<temporary leak direction variable

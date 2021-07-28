@@ -7,6 +7,14 @@
 #include "../globals.h"
 #include "../neuro/tn_neuron.h"
 
+/** Saturation network flags / settings */
+extern unsigned int SAT_NET_PERCENT;
+extern unsigned int SAT_NET_COREMODE;
+extern unsigned int SAT_NET_THRESH;
+extern unsigned int SAT_NET_LEAK;
+extern unsigned int SAT_NET_STOC;
+extern unsigned int IS_SAT_NET;
+
 extern int connectedWeight;
 
 /**

@@ -4,10 +4,10 @@
 #include "../globals.h"
 
 typedef struct {
-  stat_type rng_count;
-  stat_type sops_count;
-  stat_type output_count;
-  stat_type spike_count;
+  uint64_t rng_count;
+  uint64_t sops_count;
+  uint64_t output_count;
+  uint64_t spike_count;
   int my_core;
   int my_neuron;
   int dest_core;

@@ -2,52 +2,51 @@
 // Created by Mark Plagge on 11/28/17.
 //
 
-#include "spike_db_reader.h"
 #include "../../../external/simclist/simclist.h"
+#include "../../external/itrlve.h"
 #include "../../sqlite/sqlite3.h"
 #include "../globals.h"
-#include "../../external/itrlve.h"
+#include "spike_db_reader.h"
 
-sqlite3 *spikedbFile;
-sqlite3 *spikedb;
-int spikedb_isopen = 0;
+static sqlite3 *spikedb;
+static int spikedb_isopen = 0;
 
-char *errmsg;
-int dbct;
+static char *errmsg;
+static int dbct;
 
 /** @defgroup sqlbuf SQL buffers and queries @{ */
 // SQL Query building blocks:
 
-char *q1 = "SELECT   input_spikes.time\n"
+static char *q1 = "SELECT   input_spikes.time\n"
            "FROM     input_spikes\n"
            "WHERE    ( input_spikes.axon = ";
-char *q2 = " ) AND ( input_spikes.core = ";
-char *q3 = ")";
-char *cntq = "select count(input_spikes.time)\n"
+static char *q2 = " ) AND ( input_spikes.core = ";
+static char *q3 = ")";
+static char *cntq = "select count(input_spikes.time)\n"
              "FROM input_spikes\n"
              "WHERE (input_spikes.axon=";
 
 /**
  * Core sql query building block 1
  */
-char *coreq1 = "SELECT \"input_spikes\".\"time\", \"input_spikes\".\"axon\"\n"
+static char *coreq1 = "SELECT \"input_spikes\".\"time\", \"input_spikes\".\"axon\"\n"
                "FROM   \"input_spikes\"\n"
                "WHERE \"input_spikes\".\"core\" = ";
 /**
  * core sql query building block 1 - counter.
  */
-char *corect1 = "SELECT count(input_spikes.time)\nFROM input_spikes\nWHERE "
+static char *corect1 = "SELECT count(input_spikes.time)\nFROM input_spikes\nWHERE "
                 "input_spikes.core = ";
 
 /**
  * SQL Count query (all spikes)
  */
-char *countFullQ = "select count(*) from input_spikes;";
+static char *countFullQ = "select count(*) from input_spikes;";
 /**
  * String query buffers
  */
-char *fullQ;
-char *coreSTR;
+static char *fullQ;
+static char *coreSTR;
 /**
  * @}
  */
@@ -145,7 +144,6 @@ char *genCountQuery(id_type axon, id_type core) {
   return query;
 }
 
-
 /**
  * String concat that returns a pointer to the very end of the string.
  * @param dest
@@ -155,10 +153,10 @@ char *genCountQuery(id_type axon, id_type core) {
 char *mystrcat(char *dest, char *src) {
   while (*dest)
     dest++;
-  while ((*(dest++) = *(src++)));
+  while ((*(dest++) = *(src++)))
+    ;
   return --dest;
 }
-
 
 /**
  * Helper function for core query building. Returns an SQL query that will
@@ -194,6 +192,8 @@ int doesCoreHaveSpikesDB(id_type core) {
   sqlite3_stmt *res;
   rc = sqlite3_prepare_v2(spikedb, fullQ, -1, &res, 0);
   // rc = sqlite3_exec(spikedb, fullQ, coreCountCB, NULL, errmsg);
+#define TXT_HEADER "****************************************************************************\n"
+
   if (rc != SQLITE_OK) {
     printf(TXT_HEADER);
     printf("\n\nSQLITE error\n");
@@ -209,11 +209,9 @@ int doesCoreHaveSpikesDB(id_type core) {
   return cntr;
 }
 
-
 uint64_t interleave(uint32_t time, uint32_t axid) {
   return combine(time, axid);
 }
-
 
 /**
  *Function that populates a linked list with input spike information:
@@ -351,9 +349,7 @@ int getSpikesFromAxon(void *timeList, id_type core, id_type axonID) {
  * @param timeList
  * @return
  */
-void spikeFromAxonComplete(void *timeList) {
-    list_destroy((list_t *)timeList);
-}
+void spikeFromAxonComplete(void *timeList) { list_destroy((list_t *)timeList); }
 
 static int callback(void *count, int argc, char **argv, char **azColName) {
   int *c = count;

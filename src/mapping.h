@@ -7,6 +7,7 @@
 
 #include "globals.h"
 
+extern uint64_t CORE_SIZE;
 extern tw_lptype model_lps[];
 
 /**

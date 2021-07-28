@@ -13,7 +13,11 @@
 #define arc4random random
 #endif
 
-
+// Dumpi variables
+extern long double COMPUTE_TIME;
+extern long double SEND_TIME_MIN;
+extern long double SEND_TIME_MAX;
+extern unsigned int DO_DUMPI;
 
 /** DUMPI TEXT FILE PERMS
  * <mpiType> <src> <dst> <wallStart> <wallStop> <cpuStart>
@@ -27,7 +31,7 @@
  * @param twTimeSend -DUMPI start
  * @return A char (dynamic mem) containing the full dumpi line.
  */
-char *generateIsend(size_type sourceChip, size_type destChip, double twTimeSend, unsigned long dumpID);
+char *generateIsend(uint64_t sourceChip, uint64_t destChip, double twTimeSend, unsigned long dumpID);
 
 /**
  * returns an Irecv in dumpi format.
@@ -37,14 +41,14 @@ char *generateIsend(size_type sourceChip, size_type destChip, double twTimeSend,
  * @param stop -DUMPI end
  * @return A char (dynamic mem) containing the full dumpi line.
  */
-char *generateIrecv(size_type sourceChip, size_type destChip, double twTimeSbend, unsigned long dumpID);
+char *generateIrecv(uint64_t sourceChip, uint64_t destChip, double twTimeSbend, unsigned long dumpID);
 
 void saveMPIMessage(id_type sourceCore, id_type destCore, double twTimeSend,
                     FILE *outputFile);
 
-size_type coreToChip(size_type coreID);
+uint64_t coreToChip(uint64_t coreID);
 
-size_type coreToRank(size_type coreID);
+uint64_t coreToRank(uint64_t coreID);
 
 bool isDestInterchip(id_type core1, id_type core2);
 

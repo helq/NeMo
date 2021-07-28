@@ -5,19 +5,12 @@
 #include "../neuro/tn_neuron_struct.h"
 
 #define SAVE_ALL_NEURON_PARAMS 1
-enum modelReadMode {
-  START_READ,
-  MODEL_HDR,
-  N_TYPE,
-  N_CORE,
-  N_LOCAL,
-  N_CONNECTIVITY,
-  N_AXONTYPES,
-  N_SGI,
-  N_SP,
-  N_BV,
-  N_PARAMS
-};
+
+extern char *luaConfigFile; //!< Stores LUA configuration file in memory for performance increase.
+extern long isBin;
+extern char NEMO_MODEL_FILE_PATH[512];
+extern bool NEMO_MODEL_IS_BINARY;
+
 
 /** @defgroup modelReading @{ */
 /** lookupNeuron finds a neuron in the config file, and pushes it's table to the top of the lua stack.

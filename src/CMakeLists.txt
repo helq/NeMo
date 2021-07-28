@@ -113,6 +113,7 @@ set(model_srcs
         globals.c
         layer_map/layer_map_lib.c
         mapping.c
+        message.c
         nemo.main.c
         neuro/axon.c
         neuro/synapse.c
@@ -131,3 +132,10 @@ endif ()
 
 message("-------------lib ${NEMO_LIBS}")
 TARGET_LINK_LIBRARIES(NeMo ${NEMO_LIBS})
+
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/NeMo
+  DESTINATION bin
+  PERMISSIONS
+    OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE
+    WORLD_READ WORLD_EXECUTE
+)

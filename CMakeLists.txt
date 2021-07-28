@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.0)
 set(CMAKE_C_STANDARD 11)
-project(SuperNeMo)
+project(NeMo)
 
 set(Project_Title "NeMo")
 set(Project_Desc "A parallel discrete event simulation based neuromorphic hardware simulation model / tool.")
@@ -50,7 +50,7 @@ set(ROSS_SRC_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/external/ROSS/")
 set(LUA_SRC_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/external/lua")
 set(SimCList_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/external/simclist")
 
-ADD_SUBDIRECTORY(${ROSS_SRC_DIRECTORY})
+ADD_SUBDIRECTORY(${ROSS_SRC_DIRECTORY} EXCLUDE_FROM_ALL)
 if (arch_chk STREQUAL "x86_64")
     SET (TARGET ROSS PROPERTY CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
 endif()
@@ -61,7 +61,7 @@ option(USE_LUA_JIT "Use JIT lua project for scripting" OFF)
 if(USE_LUA_JIT)
     message(STATUS "LUA JIT PROJECT")
 else()
-    ADD_SUBDIRECTORY(${LUA_SRC_DIRECTORY})
+    ADD_SUBDIRECTORY(${LUA_SRC_DIRECTORY} EXCLUDE_FROM_ALL)
     include_directories(${MPI_INCLUDE_PATH}
             ${LUA_SRC_DIRECTORY}/src
             ${lua_BINARY_DIR})
@@ -73,9 +73,9 @@ ADD_SUBDIRECTORY(${NEMO_SRC_DIRECTORY})
 #get_target_property(CFLGS ROSS CMAKE_C_FLAGS)
 set_target_properties(NeMo
     PROPERTIES
-    ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
-    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+#    ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
+#    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
+#    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
     CONFIG_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/scripts"
         USE_LUA_JIT ${USE_LUA_JIT}
  #       CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${CFLGS} -std=gnu11"

@@ -7,6 +7,8 @@
 
 #include "../globals.h"
 
+extern char NEMO_SPIKE_FILE_PATH[512];
+
 /** @defgroup spin Spike Input Functions @{ */
 
 /* Spike Loading Functions (generics) */
