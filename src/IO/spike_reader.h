@@ -9,7 +9,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-list_t spikeList;
-FILE *spikeFile;
+// list_t spikeList;
+// FILE *spikeFile;
 
 #endif //SUPERNEMO_SPIKE_READER_H

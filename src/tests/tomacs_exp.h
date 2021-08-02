@@ -12,11 +12,11 @@
 #else
 
 /** \defgroup synapSat Synaptic Saturation Experement @{ */
-unsigned int NUM_LAYERS_IN_SIM;
-layerTypes LAYER_NET_MODE;
-unsigned int LAYER_SIZES[4096];
+//unsigned int NUM_LAYERS_IN_SIM;
+//layerTypes LAYER_NET_MODE;
+//unsigned int LAYER_SIZES[4096];
 
-int connectedWeight;
+extern int connectedWeight;
 
 //not used as a temp variable swap method is actually faster on modern CPU compiler combos
 //#define SWAP(a, b) (((a) == (b)) || (((a) ^= (b)), ((b) ^= (a)), ((a) ^= (b))))

@@ -23,9 +23,11 @@
 #endif
 #include "ross.h"
 
+#define g_tw_npe 1
+
 /** @defgroup tempConfig Temporary configuration globals
  *	These global defines are stored here before I migrate them into either a run-time
- *	or compile-time option 
+ *	or compile-time option
  * @{ */
 
 #define SAVE_NEURON_STATS 1
@@ -41,7 +43,7 @@
 #define TH printf( TXT_HEADER );
 #define STT(str, p) printf("* \t" str "\n" , p );
 
-/** @defgroup types Typedef Vars 
+/** @defgroup types Typedef Vars
  * Typedefs to ensure proper types for the neuron parameters/mapping calculations
  */
 /**@{  */
@@ -98,7 +100,7 @@ weight_type iiABS(weight_type in);
   */
 /** @{ */
 
-/** Macro for use within globals. 
+/** Macro for use within globals.
  Assumes that there is a tw_lp pointer called lp in the function it is used.
  */
 #define JITTER (tw_rand_unif(lp->rng) / 10000)
