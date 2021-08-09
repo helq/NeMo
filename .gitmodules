@@ -1,0 +1,7 @@
+[submodule "external/ROSS"]
+	path = external/ROSS
+	url = https://github.com/ross-org/ROSS
+	branch = tiebreaker
+[submodule "external/lua"]
+	path = external/lua
+	url = https://github.com/markplagge/lua

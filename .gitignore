@@ -1,0 +1,7 @@
+compile_commands.json
+*.pyc
+build/
+.DS_Store
+.vscode/
+.mypy_cache/
+docs/html
